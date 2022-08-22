@@ -5,7 +5,7 @@ Template for a Starcraft 2 bot for competing on [sc2ai.net](https://sc2ai.net/),
 ## Running
 
 1. Install [Zig](https://ziglang.org/).
-2. Download the template.
+2. Download the template including the submodule.
 3. In the folder write `zig build` and `./zig-out/bin/zig-bot.exe`.
 If you are using VS Code, you can build and launch using the configs in the .vscode folder. Debugging also works.
 4. To build a release build write `zig build -Drelease-safe`
