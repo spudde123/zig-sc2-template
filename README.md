@@ -15,5 +15,5 @@ the zip for ladder. The script uses 7z from a certain path currently.
 
 ## Status
 
-Still lacking important features and possibly buggy. Testing it out is fine, but probably better to wait
+Still lacking important features and being actively worked on so things may change. Testing it out is fine, but probably better to wait
 a while before starting a real bot.
