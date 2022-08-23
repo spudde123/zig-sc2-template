@@ -12,3 +12,8 @@ If you are using VS Code, you can build and launch using the configs in the .vsc
 5. To build an executable that works on the sc2ai ladder write
 `zig build -Dtarget=x86_64-linux -Drelease-safe`. There is also a .bat file that you can modify to directly generate
 the zip for ladder. The script uses 7z from a certain path currently.
+
+## Status
+
+Still lacking important features and possibly buggy. Testing it out is fine, but probably better to wait
+a while before starting a real bot.
