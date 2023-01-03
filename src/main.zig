@@ -34,7 +34,7 @@ const TestBot = struct {
         _ = self;
     }
 
-    fn testFilter(unit: Unit, context: []UnitId) bool {
+    fn testFilter(context: []UnitId, unit: Unit) bool {
         for (context) |unit_id| {
             if(unit.unit_type == unit_id) return true;
         }
@@ -50,9 +50,13 @@ const TestBot = struct {
         _ = self;
         _ = game_info;
         const enemy_start_location = game_info.enemy_start_locations[0];
+        const start_location = game_info.start_location;
+        std.debug.print("Start: {d} {d}\n", .{start_location.x, start_location.y});
+        std.debug.print("Enemy: {d} {d}\n", .{enemy_start_location.x, enemy_start_location.y});
+        var runtime: usize = 0;
         var context = [_]UnitId{UnitId.SCV};
-        const res = unit_group.filter(bot.units, context[0..], testFilter, self.step_alloc);
-
+        
+        const res = unit_group.filter(bot.units, self.step_alloc, context[runtime..], testFilter);
         for (res) |u| {
             std.debug.print("{d} {d} {d}\n", .{u.tag, u.position.x, u.position.y});
         }
