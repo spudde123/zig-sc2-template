@@ -47,8 +47,6 @@ const TestBot = struct {
         game_info: bot_data.GameInfo,
         actions: *bot_data.Actions
     ) void {
-        _ = self;
-        _ = game_info;
         const enemy_start_location = game_info.enemy_start_locations[0];
         const start_location = game_info.start_location;
         std.debug.print("Start: {d} {d}\n", .{start_location.x, start_location.y});
