@@ -13,11 +13,26 @@
                 "--CompRace", "random",
                 "--CompDifficulty", "very_hard",
                 "--CompBuild", "random",
-                "--Map", "BlackburnAIE"
+                "--Map", "InsideAndOutAIE"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
+            "console": "externalTerminal",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "(Mac) Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/zig-bot",
+            "args": [
+                "--CompRace", "random",
+                "--CompDifficulty", "very_hard",
+                "--CompBuild", "random",
+                "--Map", "InsideAndOutAIE"
+            ],
+            "cwd": "${workspaceFolder}",
             "console": "externalTerminal",
             "preLaunchTask": "build"
         }
