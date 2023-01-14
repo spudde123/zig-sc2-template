@@ -1,1 +1,4 @@
-zig-bot
+# Ignore all files without an extension (linux executable for ladder)
+*
+!*.*
+
