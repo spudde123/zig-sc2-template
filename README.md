@@ -16,7 +16,7 @@ the zip for ladder. The script uses 7z from a certain path currently.
 ## Examples
 
 The examples folder includes some bots, one of which competes on the
-sc2ai ladder. To quickly run for example the bot one_base_terran you
+sc2ai ladder. To quickly run for example the bot `one_base_terran` you
 can write `zig build run -- one_base_terran`. In general `zig build`
 builds your bot in `src/main` if you don't give it parameters. If you
 do it tries to build an example with that name.  

@@ -493,7 +493,7 @@ const ExampleBot = struct {
             } else {
                 switch (unit.unit_type) {
                     .SiegeTank => actions.useAbility(unit_tag, .SiegeMode_SiegeMode, false),
-                    .Liberator => actions.useAbilityOnPosition(unit_tag, AbilityId.Morph_LiberatorAGMode, middle_of_ramp, false),
+                    .Liberator => actions.useAbilityOnPosition(unit_tag, .Morph_LiberatorAGMode, middle_of_ramp, false),
                     else => continue,
                 }
             }
