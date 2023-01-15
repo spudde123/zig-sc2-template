@@ -12,10 +12,6 @@ const Unit = bot_data.Unit;
 const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
 
-// @TODO:
-// 1. Optimize the build
-// 2. Control units
-
 const ArmyState = enum {
     defend,
     attack,
@@ -576,16 +572,21 @@ const ExampleBot = struct {
         }
     }
 
-    fn search(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
-        _ = self;
-        _ = bot;
-        _ = game_info;
-        _ = actions;
+    // Just go from expansion to expansion in some order trying to find
+    // enemy buildings
+    fn search(self: *ExampleBot, game_info: GameInfo, actions: *Actions) void {
+        for (self.main_force.items) |unit_tag| {
+            actions.attackPosition(unit_tag, game_info.expansion_locations[0], false);
+
+            for (game_info.expansion_locations[1..]) |exp| {
+                actions.attackPosition(unit_tag, exp, true);
+            }
+        }
     }
 
     fn controlArmy(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
-        //const enemy_units = bot.units.values();
+        const enemy_units = bot.units.values();
 
         switch (self.army_state) {
             .defend => {
@@ -609,10 +610,34 @@ const ExampleBot = struct {
                     return;
                 }
 
+                // If we can see the enemy start location but don't know
+                // about any enemy units we go and search
+                if (bot.visibility.getValue(game_info.enemy_start_locations[0]) > 0 and enemy_units.len == 0) {
+                    self.main_force.appendSlice(self.new_army.items) catch {};
+                    self.new_army.clearRetainingCapacity();
+                    self.army_state = .search;
+                    return;
+                }
+
                 self.attack(bot, game_info, actions);
             },
             .search => {
-                self.search(bot, game_info, actions);
+                // Just call search once to give
+                // queued commands
+                const SearchState = struct {
+                    var commands_given: bool = false;
+                };
+                
+                if (bot.enemies_entered_vision.len > 0) {
+                    SearchState.commands_given = false;
+                    self.army_state = .attack;
+                    return;
+                }
+
+                if (SearchState.commands_given) return;
+
+                self.search(game_info, actions);
+                SearchState.commands_given = true;
             },
         }
     }
