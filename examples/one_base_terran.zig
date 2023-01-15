@@ -69,7 +69,7 @@ const ExampleBot = struct {
         _ = self;
         _ = game_info;
 
-        actions.tagGame("TestingTag");
+        actions.tagGame("testing_tag");
     }
 
     fn countReady(group: []Unit, unit_id: UnitId) usize {
