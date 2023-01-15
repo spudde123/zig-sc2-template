@@ -24,7 +24,6 @@ const ArmyState = enum {
 const ExampleBot = struct {
 
     allocator: mem.Allocator,
-    fba: std.heap.FixedBufferAllocator,
     // These are mandatory
     name: []const u8,
     race: bot_data.Race,
@@ -36,12 +35,8 @@ const ExampleBot = struct {
     new_army: std.ArrayList(u64),
 
     pub fn init(base_allocator: mem.Allocator) !ExampleBot {
-        var buffer = try base_allocator.alloc(u8, 10*1024*1024);
-        var fba = std.heap.FixedBufferAllocator.init(buffer);
-        
         return .{
             .allocator = base_allocator,
-            .fba = fba,
             .name = "ExampleBot",
             .race = .terran,
             .main_force = try std.ArrayList(u64).initCapacity(base_allocator, 60),
@@ -52,7 +47,6 @@ const ExampleBot = struct {
     pub fn deinit(self: *ExampleBot) void {
         self.main_force.deinit();
         self.new_army.deinit();
-        self.allocator.free(self.fba.buffer);
     }
 
     pub fn onStart(
@@ -196,7 +190,7 @@ const ExampleBot = struct {
                 if (bot.minerals >= 150 and bot.vespene >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
                     const location_candidate = main_base_ramp.top_center.towards(game_info.start_location, 8);
-                    if (actions.findPlacement(.Factory, location_candidate, 20)) |location| {
+                    if (actions.findPlacement(.FactoryTechLab, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .Factory, location, false);
                         }
@@ -539,6 +533,10 @@ const ExampleBot = struct {
             break :t closest_enemy_info.unit.position;
         };
         
+        const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
+        var tank_iter = unit_group.includeTypes(&tank_types, bot.units.values());
+        const closest_tank_info = tank_iter.findClosest(game_info.enemy_start_locations[0]);
+
         for (self.main_force.items) |unit_tag| {
             const unit = bot.units.get(unit_tag).?;
             switch (unit.unit_type) {
@@ -564,10 +562,41 @@ const ExampleBot = struct {
                         const lib_target = unit.position.towards(target, 4);
                         actions.useAbilityOnPosition(unit_tag, .Morph_LiberatorAGMode, lib_target, false);
                     } else {
-                        actions.attackPosition(unit_tag, target, false);
+                        if (closest_tank_info) |tank_info| {
+                            if (unit.position.distanceSquaredTo(tank_info.unit.position) > 10) {
+                                actions.attackPosition(unit_tag, tank_info.unit.position, false);
+                            } else {
+                                actions.attackPosition(unit_tag, target, false);
+                            }
+                        } else {
+                            actions.attackPosition(unit_tag, target, false);
+                        }
                     }
                 },
-                else => actions.attackPosition(unit_tag, target, false),
+                else => {
+                    // If the target is very close just attack it
+                    if (unit.position.distanceSquaredTo(target) < 25) {
+                        actions.attackPosition(unit_tag, target, false);
+                        return;
+                    }
+                    // Otherwise either follow a tank around
+                    // or hide behind a tank if it's sieging
+                    if (closest_tank_info) |tank_info| {
+                        if (unit.position.distanceSquaredTo(tank_info.unit.position) > 16) {
+                            actions.moveToPosition(unit_tag, tank_info.unit.position, false);
+                        } else {
+                            if (tank_info.unit.unit_type == .SiegeTankSieged) {
+                                const enemy_start = game_info.enemy_start_locations[0];
+                                const behind_tank = tank_info.unit.position.towards(enemy_start, -2);
+                                actions.attackPosition(unit_tag, behind_tank, false);
+                            } else {
+                                actions.attackPosition(unit_tag, target, false);
+                            }
+                        }
+                    } else {
+                        actions.attackPosition(unit_tag, target, false);
+                    }
+                }
             }
         }
     }
@@ -648,9 +677,6 @@ const ExampleBot = struct {
         game_info: GameInfo,
         actions: *Actions
     ) void {
-        _ = self.fba.allocator();
-        defer self.fba.reset();
-        
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
