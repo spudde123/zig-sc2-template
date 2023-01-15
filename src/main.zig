@@ -44,7 +44,7 @@ const MyBot = struct {
         _ = bot;
         _ = self;
         _ = game_info;
-        actions.tagGame("ExampleTag");
+        actions.tagGame("example_tag");
     }
 
     pub fn onStep(

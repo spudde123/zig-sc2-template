@@ -146,7 +146,7 @@ const ExampleBot = struct {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
                     
                     if (th_iterator.next()) |th| {
-                        const geysir = unit_group.findClosestUnit(bot.vespene_geysers, th.position);
+                        const geysir = unit_group.findClosestUnit(bot.vespene_geysers, th.position) orelse return;
 
                         var worker_iterator = unit_group.includeType(.SCV, own_units);
                         if (worker_iterator.findClosest(geysir.unit.position)) |res| {
@@ -395,7 +395,7 @@ const ExampleBot = struct {
             while (worker_iterator.next()) |worker| {
                 if (worker.isUsingAbility(.Harvest_Gather_SCV)) {
 
-                    const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position);
+                    const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                     if (closest_mineral_info.distance_squared < 2) {
                         actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
                         break;
@@ -406,7 +406,8 @@ const ExampleBot = struct {
     }
 
     fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: GameInfo, actions: *Actions) void {
-        const closest_mineral_tag = unit_group.findClosestUnit(minerals, game_info.start_location).unit.tag;
+        const closest_mineral_res = unit_group.findClosestUnit(minerals, game_info.start_location) orelse return;
+        const closest_mineral_tag = closest_mineral_res.unit.tag;
         for (units) |unit| {
             if (unit.unit_type != .SCV or unit.orders.len > 0) continue;
             actions.useAbilityOnUnit(unit.tag, .Smart, closest_mineral_tag, false);
@@ -416,7 +417,8 @@ const ExampleBot = struct {
     fn useMules(units: []Unit, minerals: []Unit, actions: *Actions) void {
         for (units) |unit| {
             if (unit.unit_type != .OrbitalCommand or unit.build_progress < 1 or unit.energy < 50) continue;
-            const closest_mineral_tag = unit_group.findClosestUnit(minerals, unit.position).unit.tag;
+            const closest_mineral_res = unit_group.findClosestUnit(minerals, unit.position) orelse continue;
+            const closest_mineral_tag = closest_mineral_res.unit.tag;
             actions.useAbilityOnUnit(unit.tag, .CalldownMULE_CalldownMULE, closest_mineral_tag, false);
         }
     }
@@ -528,7 +530,7 @@ const ExampleBot = struct {
             const enemy_units = bot.enemy_units.values();
             if (enemy_units.len == 0) break :t game_info.enemy_start_locations[0];
 
-            const closest_enemy_info = unit_group.findClosestUnit(enemy_units, army_center);
+            const closest_enemy_info = unit_group.findClosestUnit(enemy_units, army_center).?;
             break :t closest_enemy_info.unit.position;
         };
         
