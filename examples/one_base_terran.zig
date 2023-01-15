@@ -317,16 +317,14 @@ const ExampleBot = struct {
         for (structures) |structure| {
             if (!structure.isReady()) continue;
 
-            var has_reactor = false;
-            if (structure.addon_tag != 0) {
-                has_reactor = r: {
-                    const addon = bot.units.get(structure.addon_tag).?;
-                    if (mem.indexOfScalar(UnitId, &reactors, addon.unit_type)) |_| {
-                        break :r true;
-                    }
-                    break :r false;
-                };
-            }
+            const has_reactor = r: {
+                if (structure.addon_tag == 0) break :r false;
+                const addon = bot.units.get(structure.addon_tag).?;
+                if (mem.indexOfScalar(UnitId, &reactors, addon.unit_type)) |_| {
+                    break :r true;
+                }
+                break :r false;
+            };
 
             if ((!has_reactor and structure.orders.len > 0) or (has_reactor and structure.orders.len > 1)) continue;
             
