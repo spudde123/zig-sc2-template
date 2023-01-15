@@ -524,14 +524,15 @@ const ExampleBot = struct {
                 i += 1;
             }
         }
-
-        const target = t: {
-            const enemy_units = bot.enemy_units.values();
-            if (enemy_units.len == 0) break :t game_info.enemy_start_locations[0];
-
-            const closest_enemy_info = unit_group.findClosestUnit(enemy_units, army_center).?;
-            break :t closest_enemy_info.unit.position;
-        };
+        const closest_enemy_info = unit_group.findClosestUnit(bot.enemy_units.values(), army_center);
+        var target: Point2 = undefined;
+        var target_flying = false;
+        if (closest_enemy_info) |enemy_info| {
+            target = enemy_info.unit.position;
+            target_flying = enemy_info.unit.is_flying;
+        } else {
+            target = game_info.enemy_start_locations[0];
+        }
         
         const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
         var tank_iter = unit_group.includeTypes(&tank_types, bot.units.values());
@@ -574,8 +575,10 @@ const ExampleBot = struct {
                     }
                 },
                 else => {
-                    // If the target is very close just attack it
-                    if (unit.position.distanceSquaredTo(target) < 25) {
+                    // If the target is very close or if it's in the air just attack it
+                    // Latter is problematic in real sieges but good enough for now
+                    // so we don't get stuck against overlords and whatnot
+                    if (unit.position.distanceSquaredTo(target) < 25 or target_flying) {
                         actions.attackPosition(unit_tag, target, false);
                         return;
                     }
