@@ -7,6 +7,11 @@
             "label": "build",
             "type": "shell",
             "command": "zig build"
+        },
+        {
+            "label": "build-zigster",
+            "type": "shell",
+            "command": "zig build -- one_base_terran"
         }
     ]
 }

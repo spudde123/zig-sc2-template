@@ -35,6 +35,23 @@
             "cwd": "${workspaceFolder}",
             "console": "externalTerminal",
             "preLaunchTask": "build"
-        }
+        },
+        {
+            "name": "(Windows) Launch Zigster",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/one_base_terran.exe",
+            "args": [
+                "--CompRace", "random",
+                "--CompDifficulty", "very_hard",
+                "--CompBuild", "random",
+                "--Map", "InsideAndOutAIE"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "externalTerminal",
+            "preLaunchTask": "build-zigster"
+        },
     ]
 }
