@@ -388,16 +388,25 @@ const ExampleBot = struct {
             if (unit.unit_type != .Refinery or unit.build_progress < 1) continue;
 
             const needed_harvesters = unit.ideal_harvesters - unit.assigned_harvesters;
-            if (needed_harvesters <= 0) continue;
-
             var worker_iterator = unit_group.includeType(.SCV, own_units);
             
-            while (worker_iterator.next()) |worker| {
-                if (worker.isUsingAbility(.Harvest_Gather_SCV)) {
+            if (needed_harvesters > 0) {
+                while (worker_iterator.next()) |worker| {
+                    if (worker.isUsingAbility(.Harvest_Gather_SCV)) {
 
-                    const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
-                    if (closest_mineral_info.distance_squared < 2) {
-                        actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
+                        const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
+                        if (closest_mineral_info.distance_squared < 2) {
+                            actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
+                            break;
+                        }
+                    }
+                }
+            } else if (needed_harvesters < 0) {
+                while (worker_iterator.next()) |worker| {
+                    if (worker.orders.len == 0) continue;
+                    if (worker.orders[0].ability_id == .Harvest_Gather_SCV and worker.orders[0].target.tag == unit.tag) {
+                        const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
+                        actions.useAbilityOnUnit(worker.tag, .Smart, closest_mineral_info.unit.tag, false);
                         break;
                     }
                 }
