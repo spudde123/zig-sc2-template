@@ -367,7 +367,7 @@ const ExampleBot = struct {
         for (bot.units_created) |new_unit_tag| {
             const unit = bot.units.get(new_unit_tag).?;
             if (unit.unit_type != .Barracks and unit.unit_type != .Factory and unit.unit_type != .Starport) continue;
-            const target = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -4);
+            const target = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -7);
             actions.useAbilityOnPosition(unit.tag, .Smart, target, false);
         }
     }
@@ -556,7 +556,7 @@ const ExampleBot = struct {
 
         const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
         var tank_iter = unit_group.includeTypes(&tank_types, own_units);
-        const closest_tank_info = tank_iter.findClosest(game_info.enemy_start_locations[0]);
+        const closest_tank_info = tank_iter.findClosest(target);
 
         for (self.main_force.items) |unit_tag| {
             const unit = bot.units.get(unit_tag).?;
@@ -614,8 +614,7 @@ const ExampleBot = struct {
                             actions.moveToPosition(unit_tag, tank_info.unit.position, false);
                         } else {
                             if (tank_info.unit.unit_type == .SiegeTankSieged) {
-                                const enemy_start = game_info.enemy_start_locations[0];
-                                const behind_tank = tank_info.unit.position.towards(enemy_start, -2);
+                                const behind_tank = tank_info.unit.position.towards(target, -2);
                                 actions.attackPosition(unit_tag, behind_tank, false);
                             } else {
                                 actions.attackPosition(unit_tag, target, false);
@@ -631,9 +630,19 @@ const ExampleBot = struct {
 
     // Just go from expansion to expansion in some order trying to find
     // enemy buildings
-    fn search(self: *ExampleBot, game_info: GameInfo, actions: *Actions) void {
+    fn search(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         for (self.main_force.items) |unit_tag| {
-            actions.attackPosition(unit_tag, game_info.expansion_locations[0], false);
+            const unit = bot.units.get(unit_tag).?;
+            var queue_first = false;
+            if (unit.unit_type == .SiegeTankSieged) {
+                actions.useAbility(unit_tag, .Unsiege_Unsiege, false);
+                queue_first = true;
+            } else if (unit.unit_type == .LiberatorAG) {
+                actions.useAbility(unit_tag, .Morph_LiberatorAAMode, false);
+                queue_first = true;
+            }
+            
+            actions.attackPosition(unit_tag, game_info.expansion_locations[0], queue_first);
 
             for (game_info.expansion_locations[1..]) |exp| {
                 actions.attackPosition(unit_tag, exp, true);
@@ -643,7 +652,7 @@ const ExampleBot = struct {
 
     fn controlArmy(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
-        const enemy_units = bot.units.values();
+        const enemy_units = bot.enemy_units.values();
 
         switch (self.army_state) {
             .defend => {
@@ -669,7 +678,12 @@ const ExampleBot = struct {
 
                 // If we can see the enemy start location but don't know
                 // about any enemy units we go and search
-                if (bot.visibility.getValue(game_info.enemy_start_locations[0]) == 2 and enemy_units.len == 0) {
+                var enemy_structures_visible: u64 = 0;
+                for (enemy_units) |unit| {
+                    if (unit.is_structure and unit.cloak != .cloaked) enemy_structures_visible += 1;
+                }
+
+                if (bot.visibility.getValue(game_info.enemy_start_locations[0]) == 2 and enemy_structures_visible == 0) {
                     self.main_force.appendSlice(self.new_army.items) catch {};
                     self.new_army.clearRetainingCapacity();
                     self.army_state = .search;
@@ -685,15 +699,26 @@ const ExampleBot = struct {
                     var commands_given: bool = false;
                 };
                 
-                if (bot.enemies_entered_vision.len > 0) {
-                    SearchState.commands_given = false;
-                    self.army_state = .attack;
-                    return;
+                for (bot.enemies_entered_vision) |enemy_tag| {
+                    const unit = bot.enemy_units.get(enemy_tag).?;
+                    if (unit.cloak != .cloaked and unit.is_structure) {
+                        SearchState.commands_given = false;
+                        self.army_state = .attack;
+                        return;
+                    }
                 }
 
                 if (SearchState.commands_given) return;
 
-                self.search(game_info, actions);
+                self.search(bot, game_info, actions);
+
+                // Giving the correct movement commands to a sieged
+                // tank or liberator doesn't seem to work on one go
+                // so let's redo them if needed
+                for (self.main_force.items) |unit_tag| {
+                    const unit = bot.units.get(unit_tag).?;
+                    if (unit.orders.len <= 1) return;
+                }
                 SearchState.commands_given = true;
             },
         }
