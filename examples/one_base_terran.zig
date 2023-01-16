@@ -234,7 +234,7 @@ const ExampleBot = struct {
                 if (bot.minerals >= 150 and bot.vespene >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
                     
-                    const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -10);
+                    const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
                     if (actions.findPlacement(.Starport, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .Starport, location, false);
