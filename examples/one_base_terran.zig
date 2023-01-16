@@ -540,9 +540,22 @@ const ExampleBot = struct {
         } else {
             target = game_info.enemy_start_locations[0];
         }
-        
+
+        const own_units = bot.units.values();
+        var orbital_iter = unit_group.includeType(.OrbitalCommand, own_units);
+        const OrbitalScan = struct {
+            var last_scan: f32 = 0;
+        };
+        if (orbital_iter.next()) |orbital| {
+            const scan_needed = bot.visibility.getValue(target) == 0;
+            if (scan_needed and orbital.energy >= 50 and bot.time - OrbitalScan.last_scan > 5) {
+                actions.useAbilityOnPosition(orbital.tag, .ScannerSweep_Scan, target, false);
+                OrbitalScan.last_scan = bot.time;
+            }
+        }
+
         const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
-        var tank_iter = unit_group.includeTypes(&tank_types, bot.units.values());
+        var tank_iter = unit_group.includeTypes(&tank_types, own_units);
         const closest_tank_info = tank_iter.findClosest(game_info.enemy_start_locations[0]);
 
         for (self.main_force.items) |unit_tag| {
@@ -566,6 +579,11 @@ const ExampleBot = struct {
                     }
                 },
                 .Liberator => {
+                    if (target_flying) {
+                        actions.attackPosition(unit_tag, target, false);
+                        continue;
+                    }
+
                     if (unit.position.distanceSquaredTo(target) < 60) {
                         const lib_target = unit.position.towards(target, 4);
                         actions.useAbilityOnPosition(unit_tag, .Morph_LiberatorAGMode, lib_target, false);
@@ -695,7 +713,7 @@ const ExampleBot = struct {
         moveWorkersToGas(bot, actions);
         handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
         controlDepots(own_units, enemy_units, game_info.getMainBaseRamp(), actions);
-        useMules(own_units, bot.mineral_patches, actions);
+        if (bot.time < 240) useMules(own_units, bot.mineral_patches, actions);
         produceUnits(bot, own_units, actions);
 
         self.handleDeadUnits(bot.dead_units);
