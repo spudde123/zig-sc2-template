@@ -345,7 +345,7 @@ const ExampleBot = struct {
         }
 
         for (units) |unit| {
-            if (unit.build_progress >= 1 and unit.unit_type != .SupplyDepot and unit.unit_type != .SupplyDepotLowered) continue;
+            if (unit.build_progress < 1 or (unit.unit_type != .SupplyDepot and unit.unit_type != .SupplyDepotLowered)) continue;
             const dist1 = unit.position.distanceSquaredTo(main_base_ramp.depot_first.?);
             const dist2 = unit.position.distanceSquaredTo(main_base_ramp.depot_second.?);
 
