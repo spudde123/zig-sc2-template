@@ -547,7 +547,8 @@ const ExampleBot = struct {
             var last_scan: f32 = 0;
         };
         if (orbital_iter.next()) |orbital| {
-            const scan_needed = bot.visibility.getValue(target) == 0;
+            std.debug.print("Visibility: {d}\n", .{bot.visibility.getValue(target)});
+            const scan_needed = bot.visibility.getValue(target) != 2;
             if (scan_needed and orbital.energy >= 50 and bot.time - OrbitalScan.last_scan > 5) {
                 actions.useAbilityOnPosition(orbital.tag, .ScannerSweep_Scan, target, false);
                 OrbitalScan.last_scan = bot.time;
@@ -669,7 +670,7 @@ const ExampleBot = struct {
 
                 // If we can see the enemy start location but don't know
                 // about any enemy units we go and search
-                if (bot.visibility.getValue(game_info.enemy_start_locations[0]) > 0 and enemy_units.len == 0) {
+                if (bot.visibility.getValue(game_info.enemy_start_locations[0]) == 2 and enemy_units.len == 0) {
                     self.main_force.appendSlice(self.new_army.items) catch {};
                     self.new_army.clearRetainingCapacity();
                     self.army_state = .search;
