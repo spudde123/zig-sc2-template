@@ -16,6 +16,7 @@ const AbilityId = bot_data.AbilityId;
 /// name and race. The only required functions are onStart,
 /// onStep and onResult with function signatures as seen below.
 const MyBot = struct {
+    const Self = @This();
 
     allocator: mem.Allocator,
 
@@ -23,7 +24,7 @@ const MyBot = struct {
     name: []const u8,
     race: bot_data.Race,
 
-    pub fn init(base_allocator: mem.Allocator) !MyBot {
+    pub fn init(base_allocator: mem.Allocator) !Self {
         return .{
             .allocator = base_allocator,
             .name = "MyBot",
@@ -31,12 +32,12 @@ const MyBot = struct {
         };
     }
 
-    pub fn deinit(self: *MyBot) void {
+    pub fn deinit(self: *Self) void {
        _ = self;
     }
 
     pub fn onStart(
-        self: *MyBot,
+        self: *Self,
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
@@ -48,7 +49,7 @@ const MyBot = struct {
     }
 
     pub fn onStep(
-        self: *MyBot,
+        self: *Self,
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
@@ -59,7 +60,7 @@ const MyBot = struct {
     }
 
     pub fn onResult(
-        self: *MyBot,
+        self: *Self,
         bot: Bot,
         game_info: GameInfo,
         result: bot_data.Result
