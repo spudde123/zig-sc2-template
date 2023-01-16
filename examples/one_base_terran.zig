@@ -499,6 +499,11 @@ const ExampleBot = struct {
         }
     }
 
+    fn notCloaked(context: void, unit: Unit) bool {
+        _ = context;
+        return unit.cloak != .cloaked;
+    }
+
     fn attack(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         var army_center: Point2 = .{};
         for (self.main_force.items) |unit_tag| {
@@ -524,7 +529,9 @@ const ExampleBot = struct {
                 i += 1;
             }
         }
-        const closest_enemy_info = unit_group.findClosestUnit(bot.enemy_units.values(), army_center);
+        var visible_enemy_iterator = unit_group.UnitIterator(void, notCloaked){.buffer = bot.enemy_units.values(), .context = {}};
+
+        const closest_enemy_info = visible_enemy_iterator.findClosest(army_center);
         var target: Point2 = undefined;
         var target_flying = false;
         if (closest_enemy_info) |enemy_info| {
@@ -547,7 +554,7 @@ const ExampleBot = struct {
                     }
                 },
                 .SiegeTank => {
-                    if (unit.position.distanceSquaredTo(target) < 120) {
+                    if (unit.position.distanceSquaredTo(target) < 110) {
                         actions.useAbility(unit_tag, .SiegeMode_SiegeMode, false);
                     } else {
                         actions.attackPosition(unit_tag, target, false);
@@ -580,7 +587,7 @@ const ExampleBot = struct {
                     // so we don't get stuck against overlords and whatnot
                     if (unit.position.distanceSquaredTo(target) < 25 or target_flying) {
                         actions.attackPosition(unit_tag, target, false);
-                        return;
+                        continue;
                     }
                     // Otherwise either follow a tank around
                     // or hide behind a tank if it's sieging
