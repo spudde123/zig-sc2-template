@@ -44,6 +44,7 @@ const TestBot = struct {
             return;
         }
         const first_cc = maybe_first_cc.?;
+        const main_base_ramp = game_info.getMainBaseRamp();
 
         var current_minerals = bot.minerals;
         if (bot.minerals > 50 and first_cc.isIdle()) {
@@ -53,7 +54,6 @@ const TestBot = struct {
 
         if (current_minerals > 100 and unit_group.amountOfType(units, .SupplyDepot) == 0) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            const main_base_ramp = game_info.getMainBaseRamp();
             actions.build(
                 closest_scv.tag,
                 .SupplyDepot,
@@ -65,7 +65,6 @@ const TestBot = struct {
 
         if (current_minerals > 100 and unit_group.amountOfType(units, .SupplyDepot) == 1) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            const main_base_ramp = game_info.getMainBaseRamp();
             actions.build(
                 closest_scv.tag,
                 .SupplyDepot,
@@ -77,7 +76,6 @@ const TestBot = struct {
 
         if (current_minerals > 150 and unit_group.amountOfType(units, .SupplyDepot) == 2) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            const main_base_ramp = game_info.getMainBaseRamp();
             actions.build(
                 closest_scv.tag,
                 .Barracks,
@@ -100,7 +98,25 @@ const TestBot = struct {
             current_minerals -= 400;
         }
 
+        // For some reason I can't place the barracks in the middle
+        // of the 2 depots if they are both down???
+        // But works fine if they are up
+        if (unit_group.amountOfType(units, .Barracks) > 0) {
+            for (units) |unit| {
+                if (unit.build_progress < 1 or unit.unit_type != .SupplyDepot) continue;
+                actions.useAbility(unit.tag, .Morph_SupplyDepot_Lower, false);
+            }
+        }
+
+        for (units) |unit| {
+            if (unit.unit_type != .SCV or unit.orders.len > 0) continue;
+            const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, first_cc.position).?;
+            const closest_mineral_tag = closest_mineral_info.unit.tag;
+            actions.useAbilityOnUnit(unit.tag, .Smart, closest_mineral_tag, false);
+        }
+
         drawRamps(game_info, actions);
+        debugTest(game_info, actions);
     }
 
     fn drawRamps(
@@ -250,6 +266,34 @@ const TestBot = struct {
                 );
             }
         }
+
+    }
+
+    fn debugTest(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
+        const main_base_ramp = game_info.getMainBaseRamp();
+        const z = game_info.getTerrainZ(main_base_ramp.top_center);
+        const line_start = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -10);
+        const line_end = game_info.start_location;
+        actions.debugLine(
+            bot_data.Point3.fromPoint2(line_start, z + 5),
+            bot_data.Point3.fromPoint2(line_end, z + 5),
+            .{.r = 255, .g = 0, .b = 0},
+        );
+
+        const box_start = line_start.add(.{.x = 5, .y = 5});
+        const box_end = box_start.add(.{.x = 10, .y = 10});
+        actions.debugBox(
+            bot_data.Point3.fromPoint2(box_start, z + 2),
+            bot_data.Point3.fromPoint2(box_end, z + 12),
+            .{.r = 0, .g = 255, .b = 0},
+        );
+
+        const sphere_pos = box_end.add(.{.x = 5, .y = 5});
+        actions.debugSphere(
+            bot_data.Point3.fromPoint2(sphere_pos, z + 5),
+            4,
+            .{.r = 0, .g = 0, .b = 255},
+        );
     }
 
     pub fn onResult(
