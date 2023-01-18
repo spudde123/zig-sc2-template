@@ -1,17 +1,22 @@
 const std = @import("std");
+const mem = std.mem;
 
 const zig_sc2 = @import("zig-sc2");
 const bot_data = zig_sc2.bot_data;
 const unit_group = bot_data.unit_group;
+const InfluenceMap = bot_data.InfluenceMap;
 
 const TestBot = struct {
     const Self = @This();
     name: []const u8,
     race: bot_data.Race,
+    allocator: mem.Allocator,
+
     locations_expanded_to: usize = 0,
     countdown_start: usize = 0,
     countdown_started: bool = false,
     first_cc_tag: u64 = 0,
+    pf_scv_tag: u64 = 0,
 
     pub fn onStart(
         self: *Self,
@@ -20,11 +25,17 @@ const TestBot = struct {
         actions: *bot_data.Actions
     ) void {
         const units = bot.units.values();
-        self.first_cc_tag = calc: {
+        self.first_cc_tag = cc_calc: {
             for (units) |unit| {
-                if (unit.unit_type == .CommandCenter) break :calc unit.tag;
+                if (unit.unit_type == .CommandCenter) break :cc_calc unit.tag;
             }    
-            break :calc 0;
+            break :cc_calc 0;
+        };
+
+        self.pf_scv_tag = scv_calc: {
+            for (units) |unit| {
+                if (unit.unit_type == .SCV) break :scv_calc unit.tag;
+            }
         };
         _ = game_info;
         _ = actions;
@@ -114,6 +125,21 @@ const TestBot = struct {
             const closest_mineral_tag = closest_mineral_info.unit.tag;
             actions.useAbilityOnUnit(unit.tag, .Smart, closest_mineral_tag, false);
         }
+
+        for (units) |unit| {
+            if (unit.tag != self.pf_scv_tag) continue;
+
+            const enemy_ramp = game_info.getEnemyMainBaseRamp();
+            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid) catch break;
+            map.addInfluence(main_base_ramp.top_center.towards(game_info.start_location, 5), 10, 15, .none);
+            defer map.deinit(self.allocator);
+
+            const pf_res = map.pathfindDirection(self.allocator, unit.position, enemy_ramp.top_center, false);
+            if (pf_res) |res| {
+                actions.moveToPosition(unit.tag, res.next_point, false);
+            }
+            break;
+        } 
 
         drawRamps(game_info, actions);
         debugTest(game_info, actions);
@@ -324,7 +350,11 @@ const TestBot = struct {
 };
 
 pub fn main() !void {
-    var my_bot = TestBot{.name = "zig-bot", .race = .terran};
+    var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
+    const gpa = gpa_instance.allocator();
+    defer _ = gpa_instance.deinit();
 
-    try zig_sc2.run(&my_bot, 2, std.heap.page_allocator, .{});
+    var my_bot = TestBot{.name = "zig-bot", .race = .terran, .allocator = gpa};
+
+    try zig_sc2.run(&my_bot, 2, gpa, .{});
 }
