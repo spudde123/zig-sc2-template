@@ -544,8 +544,6 @@ const MassReaper = struct {
         game_info: GameInfo,
         actions: *Actions
     ) !void {
-        //var timer = std.time.Timer.start() catch return;
-
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
@@ -559,8 +557,6 @@ const MassReaper = struct {
 
         self.updateReaperGrid(bot, game_info, actions);
         self.controlArmy(bot, game_info, actions);
-        //const end = timer.lap();
-        //std.debug.print("Bot time: {d}\n", .{end / std.time.ns_per_us});
     }
 
     pub fn onResult(
