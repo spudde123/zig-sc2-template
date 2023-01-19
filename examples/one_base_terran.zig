@@ -54,7 +54,7 @@ const ExampleBot = struct {
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
-    ) void {
+    ) !void {
         _ = bot;
         _ = self;
         _ = game_info;
@@ -729,7 +729,7 @@ const ExampleBot = struct {
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
-    ) void {
+    ) !void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
@@ -751,7 +751,7 @@ const ExampleBot = struct {
         bot: Bot,
         game_info: GameInfo,
         result: bot_data.Result
-    ) void {
+    ) !void {
         _ = bot;
         _ = game_info;
         _ = result;

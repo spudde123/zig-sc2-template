@@ -41,7 +41,7 @@ const MyBot = struct {
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
-    ) void {
+    ) !void {
         _ = bot;
         _ = self;
         _ = game_info;
@@ -53,7 +53,7 @@ const MyBot = struct {
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions
-    ) void {
+    ) !void {
        _ = self;
        _ = game_info;
        if (bot.time >= 60) actions.leaveGame();
@@ -64,7 +64,7 @@ const MyBot = struct {
         bot: Bot,
         game_info: GameInfo,
         result: bot_data.Result
-    ) void {
+    ) !void {
         _ = bot;
         _ = game_info;
         _ = result;

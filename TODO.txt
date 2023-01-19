@@ -1,0 +1,3 @@
+- Do we have to check for game status?
+- Make sure pathfinding runs from valid points,
+that's probably why it got a bit slow.

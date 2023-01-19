@@ -4,7 +4,8 @@ import subprocess
 import zipfile
 
 valid_examples = {
-    "one_base_terran": True
+    "one_base_terran": True,
+    "mass_reaper": True,
 }
 
 def main():

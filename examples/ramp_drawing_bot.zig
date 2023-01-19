@@ -5,6 +5,7 @@ const zig_sc2 = @import("zig-sc2");
 const bot_data = zig_sc2.bot_data;
 const unit_group = bot_data.unit_group;
 const InfluenceMap = bot_data.InfluenceMap;
+const Point2 = bot_data.Point2;
 
 const TestBot = struct {
     const Self = @This();
@@ -23,7 +24,7 @@ const TestBot = struct {
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
         actions: *bot_data.Actions
-    ) void {
+    ) !void {
         const units = bot.units.values();
         self.first_cc_tag = cc_calc: {
             for (units) |unit| {
@@ -46,7 +47,7 @@ const TestBot = struct {
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
         actions: *bot_data.Actions
-    ) void {
+    ) !void {
         const units = bot.units.values();
         
         const maybe_first_cc = bot.units.get(self.first_cc_tag);
@@ -130,7 +131,7 @@ const TestBot = struct {
             if (unit.tag != self.pf_scv_tag) continue;
 
             const enemy_ramp = game_info.getEnemyMainBaseRamp();
-            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid) catch break;
+            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid, game_info.terrain_height) catch break;
             map.addInfluence(main_base_ramp.top_center.towards(game_info.start_location, 5), 10, 15, .none);
             defer map.deinit(self.allocator);
 
@@ -143,6 +144,7 @@ const TestBot = struct {
 
         drawRamps(game_info, actions);
         debugTest(game_info, actions);
+        drawClimbablePoints(game_info, actions);
     }
 
     fn drawRamps(
@@ -322,19 +324,33 @@ const TestBot = struct {
         );
     }
 
+    fn drawClimbablePoints(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
+        for (game_info.climbable_points) |index| {
+            const point = game_info.pathing_grid.indexToPoint(index).add(.{.x = 0.5, .y = 0.5});
+            const z = game_info.getTerrainZ(point);
+            actions.debugTextWorld(
+                "x",
+                bot_data.Point3.fromPoint2(point, z),
+                .{.r = 0, .g = 255, .b = 0},
+                24
+            );
+            
+        }
+    }
+
     pub fn onResult(
         self: *Self,
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
         result: bot_data.Result
-    ) void {
+    ) !void {
         _ = bot;
         _ = game_info;
         _ = result;
         _ = self;
     }
 
-    fn findClosestCollectingUnit(units: []bot_data.Unit, pos: bot_data.Point2) bot_data.Unit {
+    fn findClosestCollectingUnit(units: []bot_data.Unit, pos: Point2) bot_data.Unit {
         var min_distance: f32 = std.math.f32_max;
         var closest_unit: bot_data.Unit = undefined;
         for (units) |unit| {
