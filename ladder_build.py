@@ -6,6 +6,7 @@ import zipfile
 valid_examples = {
     "one_base_terran": True,
     "mass_reaper": True,
+    "two_base_protoss": True
 }
 
 def main():
