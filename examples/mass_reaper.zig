@@ -444,7 +444,7 @@ const MassReaper = struct {
         };
         const good_type = mem.indexOfScalar(UnitId, &non_relevant, unit.unit_type) == null;
         const close = context.distanceSquaredTo(unit.position) < 15*15;
-        return !unit.is_flying and !unit.is_structure and good_type and close;
+        return !unit.is_flying and unit.display_type == .visible and !unit.is_structure and good_type and close;
     }
 
     fn updateReaperGrid(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
