@@ -64,7 +64,7 @@ const MassReaper = struct {
         _ = bot;
         _ = actions;
         std.sort.sort(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
-        self.reaper_map = try InfluenceMap.fromGrid(self.allocator, game_info.reaper_grid, game_info.terrain_height);
+        self.reaper_map = try InfluenceMap.fromGrid(self.allocator, game_info.reaper_grid);
         std.debug.print("Start: {d} {d}\n", .{game_info.start_location.x, game_info.start_location.y});
     }
 
