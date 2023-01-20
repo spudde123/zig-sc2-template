@@ -332,10 +332,22 @@ const ProtossBot = struct {
         }
     }
 
-    fn useChronoboost(units: []Unit, actions: *Actions) void {
+    fn useChronoboost(bot: Bot, actions: *Actions) void {
+        const units = bot.units.values();
+        const warpgate_status = bot.upgradePending(.WarpGateResearch);
         for (units) |unit| {
             if (unit.unit_type != .Nexus or unit.build_progress < 1 or unit.energy < 50) continue;
-            if (!unit.hasBuff(BuffId.ChronoBoostEnergyCost)) {
+            
+            if (warpgate_status > 0 and warpgate_status < 1) {
+                var cybercore_iter = unit_group.includeType(.CyberneticsCore, units);
+                const cybercore = cybercore_iter.next().?;
+                if (!cybercore.hasBuff(.ChronoBoostEnergyCost)) {
+                    actions.useAbilityOnUnit(unit.tag, .Effect_ChronoBoostEnergyCost, cybercore.tag, false);
+                    continue;
+                }
+            }
+            
+            if (!unit.hasBuff(.ChronoBoostEnergyCost)) {
                 actions.useAbilityOnUnit(unit.tag, .Effect_ChronoBoostEnergyCost, unit.tag, false);
             }
         }
@@ -408,7 +420,7 @@ const ProtossBot = struct {
         rallyBuildings(bot, actions);
         doUpgrades(bot, actions);
         produceUnits(self, bot, game_info, actions);
-        useChronoboost(own_units, actions);
+        useChronoboost(bot, actions);
         handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
         moveWorkersToGas(bot, actions);
         controlArmy(bot, game_info, actions);
