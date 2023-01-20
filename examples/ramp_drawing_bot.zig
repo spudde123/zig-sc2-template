@@ -131,7 +131,7 @@ const TestBot = struct {
             if (unit.tag != self.pf_scv_tag) continue;
 
             const enemy_ramp = game_info.getEnemyMainBaseRamp();
-            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid, game_info.terrain_height) catch break;
+            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid) catch break;
             map.addInfluence(main_base_ramp.top_center.towards(game_info.start_location, 5), 10, 15, .none);
             defer map.deinit(self.allocator);
 
