@@ -93,7 +93,6 @@ const ExampleBot = struct {
 
     fn runBuild(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
-        //const enemy_units = bot.enemy_units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
         
         switch (self.build_step) {
@@ -103,7 +102,7 @@ const ExampleBot = struct {
                     return;
                 }
 
-                if (bot.food_used == 14 and bot.minerals >= 100) {
+                if (bot.food_used >= 14 and bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
             
                     if (worker_iterator.findClosest(main_base_ramp.depot_first.?)) |res| {

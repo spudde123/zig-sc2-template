@@ -61,7 +61,6 @@ const MassReaper = struct {
         _ = actions;
         std.sort.sort(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
         self.reaper_map = try InfluenceMap.fromGrid(self.allocator, game_info.reaper_grid, game_info.terrain_height);
-        std.debug.print("Start: {d} {d}\n", .{game_info.start_location.x, game_info.start_location.y});
     }
 
     fn countReady(group: []Unit, unit_id: UnitId) usize {
@@ -72,9 +71,9 @@ const MassReaper = struct {
         return count;
     }
 
-    fn findFreeGeysir(near: Point2, units: []Unit, geysirs: []Unit) Unit {
-        var closest: Unit = undefined;
-        var min_dist: f32 = std.math.f32_max;
+    fn findFreeGeysir(near: Point2, units: []Unit, geysirs: []Unit) ?Unit {
+        var closest: ?Unit = null;
+        var min_dist: f32 = 12*12;
 
         gl: for (geysirs) |geysir| {
 
@@ -95,7 +94,6 @@ const MassReaper = struct {
 
     fn runBuild(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
-        //const enemy_units = bot.enemy_units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
         
         switch (self.build_step) {
@@ -105,7 +103,7 @@ const MassReaper = struct {
                     return;
                 }
 
-                if (bot.food_used == 14 and bot.minerals >= 100) {
+                if (bot.food_used >= 14 and bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
             
                     if (worker_iterator.findClosest(main_base_ramp.depot_first.?)) |res| {
@@ -158,7 +156,7 @@ const MassReaper = struct {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
                     
                     if (th_iterator.next()) |th| {
-                        const geysir = findFreeGeysir(th.position, own_units, bot.vespene_geysers);
+                        const geysir = findFreeGeysir(th.position, own_units, bot.vespene_geysers).?;
 
                         var worker_iterator = unit_group.includeType(.SCV, own_units);
                         if (worker_iterator.findClosestUsingAbility(geysir.position, .Harvest_Gather_SCV)) |res| {
@@ -261,11 +259,11 @@ const MassReaper = struct {
                     }
 
                     if (ths == 2 and bot.minerals >= 75 and refinery_count < 4) {
-                        const geysir = findFreeGeysir(unit.position, own_units, bot.vespene_geysers);
-
-                        var worker_iterator = unit_group.includeType(.SCV, own_units);
-                        if (worker_iterator.findClosestUsingAbility(geysir.position, .Harvest_Gather_SCV)) |res| {
-                            actions.buildOnUnit(res.unit.tag, .Refinery, geysir.tag, false);
+                        if (findFreeGeysir(unit.position, own_units, bot.vespene_geysers)) |geysir| {
+                            var worker_iterator = unit_group.includeType(.SCV, own_units);
+                            if (worker_iterator.findClosestUsingAbility(geysir.position, .Harvest_Gather_SCV)) |res| {
+                                actions.buildOnUnit(res.unit.tag, .Refinery, geysir.tag, false);
+                            }
                         }
                     }
                 }
@@ -387,6 +385,34 @@ const MassReaper = struct {
         }
     }
 
+    fn sendScout(units: []Unit, dead_units: []Unit, game_info: GameInfo, actions: *Actions) void {
+        const ScoutState = struct {
+            var scout_sent: bool = false;
+            var scout_tag: u64 = 0;
+        };
+        
+        if (ScoutState.scout_sent) {
+            for (dead_units) |dead_unit| {
+                if (dead_unit.tag == ScoutState.scout_tag) {
+                    ScoutState.scout_sent = false;
+                }
+            }
+        }
+
+        if (ScoutState.scout_sent) return;
+
+        for (units) |unit| {
+            if (unit.unit_type != .SCV) continue;
+            actions.moveToPosition(unit.tag, game_info.expansion_locations[1], false);
+            for (game_info.expansion_locations[2..]) |exp| {
+                actions.moveToPosition(unit.tag, exp, true);
+            }
+            ScoutState.scout_sent = true;
+            ScoutState.scout_tag = unit.tag;
+            break;
+        }
+    }
+
     fn useMules(units: []Unit, minerals: []Unit, actions: *Actions) void {
         for (units) |unit| {
             if (unit.unit_type != .OrbitalCommand or unit.build_progress < 1 or unit.energy < 50) continue;
@@ -396,15 +422,20 @@ const MassReaper = struct {
         }
     }
 
-    fn isArmy(context: void, unit: Unit) bool {
-        _ = context;
-        return !unit.is_structure;
-    }
-
     fn relevantEnemy(context: Point2, unit: Unit) bool {
-        const army = !unit.is_structure;
+        const non_relevant = [_]UnitId{
+            .Larva,
+            .Egg,
+            .Changeling,
+            .ChangelingMarine,
+            .ChangelingMarineShield,
+            .ChangelingZealot,
+            .ChangelingZergling,
+            .ChangelingZerglingWings,
+        };
+        const good_type = mem.indexOfScalar(UnitId, &non_relevant, unit.unit_type) == null;
         const close = context.distanceSquaredTo(unit.position) < 15*15;
-        return !unit.is_flying and army and close;
+        return !unit.is_flying and good_type and close;
     }
 
     fn updateReaperGrid(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
@@ -549,6 +580,7 @@ const MassReaper = struct {
 
         self.runBuild(bot, game_info, actions);
         rallyBuildings(bot, game_info, actions);
+        if (bot.time > 360) sendScout(own_units, bot.dead_units, game_info, actions);
         moveWorkersToGas(bot, actions);
         handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
         controlDepots(own_units, enemy_units, game_info.getMainBaseRamp(), actions);
