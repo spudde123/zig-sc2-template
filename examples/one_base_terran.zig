@@ -573,7 +573,7 @@ const ExampleBot = struct {
                     }
                 },
                 .LiberatorAG => {
-                    if (unit.position.distanceSquaredTo(target) > 100) {
+                    if (unit.position.distanceSquaredTo(target) > 100 or target_flying) {
                         actions.useAbility(unit_tag, .Morph_LiberatorAAMode, false);
                     }
                 },

@@ -18,7 +18,7 @@ const reaper_grenade_range = 5;
 const heal_at_less_than = 0.5;
 const range_buffer = 3;
 const reaper_range = 5;
-const second_attack_limit = 22.4 * 0.79 * 0.8;
+const second_attack_limit = 22.4 * 0.79 * 0.9;
 
 /// Done very quick and dirty, intention is to test
 /// the influence map functions with reapers
@@ -426,6 +426,11 @@ const MassReaper = struct {
         }
     }
 
+    fn isCloseStructure(context: Point2, unit: Unit) bool {
+        const close = context.distanceSquaredTo(unit.position) < 25*25;
+        return !unit.is_flying and unit.is_structure and close;
+    }
+
     fn relevantEnemy(context: Point2, unit: Unit) bool {
         const non_relevant = [_]UnitId{
             .Larva,
@@ -439,7 +444,7 @@ const MassReaper = struct {
         };
         const good_type = mem.indexOfScalar(UnitId, &non_relevant, unit.unit_type) == null;
         const close = context.distanceSquaredTo(unit.position) < 15*15;
-        return !unit.is_flying and good_type and close;
+        return !unit.is_flying and !unit.is_structure and good_type and close;
     }
 
     fn updateReaperGrid(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
@@ -455,6 +460,7 @@ const MassReaper = struct {
                 self.reaper_map.addInfluence(unit.position, ground_range + range_buffer, ground_dps, .none);
             }
         }
+        self.reaper_map.addInfluenceCreep(bot.creep, 2);
     }
 
     fn getAttackTarget(bot: Bot, game_info: GameInfo) Point2 {
@@ -532,6 +538,8 @@ const MassReaper = struct {
             var found_in_range = false;
             var lowest_health: f32 = math.f32_max;
             var target: ?Unit = null;
+            // Not checking structures because we don't want to target them early in the game
+            // and we also specifically don't want to start fighting cannons
             while (enemy_iterator.next()) |enemy| {
                 const in_range = enemy.position.distanceSquaredTo(unit.position) < reaper_range*reaper_range;
                 if (in_range) {
@@ -553,16 +561,24 @@ const MassReaper = struct {
                     actions.attackUnit(unit.tag, target_unit.tag, false);
                     continue;
                 }
-            } 
-
-            if (self.reaper_map.grid[self.reaper_map.pointToIndex(valid_pos)] > 1) {
-                self.moveToSafety(game_info, actions, unit, fb);
-                continue;
             }
+
+            // Silly way of getting the bot to just go for it vs for example cannons if
+            // we have got to a point where are late in the game and still in it
+            if (bot.time < 60*10) {
+                // Putting 4 here so we don't run away just because of creep and any
+                // unit with damage will push this over regardless
+                if (self.reaper_map.grid[self.reaper_map.pointToIndex(valid_pos)] > 4) {
+                    self.moveToSafety(game_info, actions, unit, fb);
+                    continue;
+                }
+            }
+            
+            var structure_iterator = unit_group.UnitIterator(Point2, isCloseStructure){.buffer = enemy_units, .context = unit.position};
 
             if (unit.position.distanceSquaredTo(attack_target) > 5*5) {
                 // Only do pathfinding if close enemies exist
-                if (enemy_iterator.exists()) {
+                if (enemy_iterator.exists() or structure_iterator.exists()) {
                     if (self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, false)) |pf| {
                         actions.moveToPosition(unit.tag, pf.next_point, false);
                         continue;
