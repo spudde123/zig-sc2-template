@@ -565,7 +565,7 @@ const MassReaper = struct {
 
             // Silly way of getting the bot to just go for it vs for example cannons if
             // we have got to a point where are late in the game and still in it
-            if (bot.time < 60*10) {
+            if (bot.time < 60*10 or enemy_iterator.exists()) {
                 // Putting 4 here so we don't run away just because of creep and any
                 // unit with damage will push this over regardless
                 if (self.reaper_map.grid[self.reaper_map.pointToIndex(valid_pos)] > 4) {
