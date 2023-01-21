@@ -723,6 +723,17 @@ const ExampleBot = struct {
         }
     }
 
+    fn drawGrid(game_info: GameInfo, actions: *Actions) void {
+        for (game_info.pathing_grid.data) |val, i| {
+            const point = game_info.pathing_grid.indexToPoint(i).add(.{.x = 0.5, .y = 0.5});
+            const z = game_info.getTerrainZ(point);
+            const p3 = bot_data.grids.Point3.fromPoint2(point, z);
+            if (val > 0) {
+                actions.debugTextWorld("X", p3, .{.r = 255, .g = 255, .b = 0}, 24);
+            }
+        }
+    }
+
     pub fn onStep(
         self: *ExampleBot,
         bot: Bot,
@@ -731,7 +742,7 @@ const ExampleBot = struct {
     ) !void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
-
+        //drawGrid(game_info, actions);
         self.runBuild(bot, game_info, actions);
         rallyBuildings(bot, game_info, actions);
         moveWorkersToGas(bot, actions);
