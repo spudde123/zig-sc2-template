@@ -424,7 +424,6 @@ const ProtossBot = struct {
         handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
         moveWorkersToGas(bot, actions);
         controlArmy(bot, game_info, actions);
-        if (bot.time >= 5000) actions.leaveGame();
     }
 
     pub fn onResult(
