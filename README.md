@@ -30,5 +30,7 @@ do it tries to build an example with that name.
 
 ## Status
 
-Still lacking important features and being actively worked on so things may change. Testing it out is fine, but probably better to wait
-a while before starting a real bot.
+Should have everything you need to start making a bot. Some things may still evolve but
+the data the user bot uses should remain stable. If you encounter some problems,
+you can join the SC2AI Discord and ask for help. Link is on the front page of
+[sc2ai.net](https://sc2ai.net/).
