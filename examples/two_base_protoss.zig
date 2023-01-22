@@ -41,8 +41,8 @@ const ProtossBot = struct {
     }
 
     fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
-        const sin = -1 + 2*self.prng.float(f32);
-        const cos = -1 + 2*self.prng.float(f32);
+        const sin: f32 = -1 + 2*self.prng.float(f32);
+        const cos: f32 = -1 + 2*self.prng.float(f32);
         const p = Point2{.x = cos, .y = sin};
         return point.add(p.multiply(distance));
     }
@@ -213,7 +213,7 @@ const ProtossBot = struct {
 
                 const gateways_ready = countReady(own_units, .Gateway) + countReady(own_units, .WarpGate);
                 const gateways_pending = bot.unitsPending(.Gateway);
-                if (bot.minerals >= 150 and gateways_ready + gateways_pending < 5) {
+                if (bot.minerals >= 150 and gateways_ready + gateways_pending < 4) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
                     
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
@@ -419,7 +419,7 @@ const ProtossBot = struct {
         self.runBuild(bot, game_info, actions);
         rallyBuildings(bot, actions);
         doUpgrades(bot, actions);
-        produceUnits(self, bot, game_info, actions);
+        self.produceUnits(bot, game_info, actions);
         useChronoboost(bot, actions);
         handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
         moveWorkersToGas(bot, actions);
