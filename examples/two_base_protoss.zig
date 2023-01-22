@@ -212,7 +212,7 @@ const ProtossBot = struct {
                 }
 
                 const gateways_ready = countReady(own_units, .Gateway) + countReady(own_units, .WarpGate);
-                const gateways_pending = bot.unitsPending(.Gateway);
+                const gateways_pending = bot.unitsPending(.Gateway) + bot.unitsPending(.WarpGate);
                 if (bot.minerals >= 150 and gateways_ready + gateways_pending < 4) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
                     
