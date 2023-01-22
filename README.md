@@ -14,6 +14,8 @@ placed in the correct folder inside your SC2 installation folder.
 Make a folder called `Maps` there if it doesn't exist, and download
 some maps from
 [here](https://sc2ai.net/wiki/maps/#wiki-toc-current-map-pool).
+To run a game on a specific map, you can write for example
+`zig build run -- --Map StargazersAIE`.
 4. To build a release build write `zig build -Drelease-safe`
 5. To build an executable that works on the sc2ai ladder write
 `zig build -Dtarget=x86_64-linux -Drelease-safe`. There is also a python script
@@ -26,7 +28,7 @@ The examples folder includes some bots, one of which competes on the
 sc2ai ladder. To quickly run for example the bot `one_base_terran` you
 can write `zig build run -- one_base_terran`. In general `zig build`
 builds your bot in `src/main` if you don't give it parameters. If you
-do it tries to build an example with that name.
+do it tries to build an example according to the first parameter name.
 
 ## Status
 
