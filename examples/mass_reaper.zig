@@ -63,7 +63,7 @@ const MassReaper = struct {
     ) !void {
         _ = bot;
         _ = actions;
-        std.sort.sort(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
+        std.sort.insertion(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
         self.reaper_map = try InfluenceMap.fromGrid(self.allocator, game_info.reaper_grid);
     }
 
@@ -466,9 +466,9 @@ const MassReaper = struct {
     fn getAttackTarget(bot: Bot, game_info: GameInfo) Point2 {
         if (bot.time > 300) {
             var closest_unit: ?Unit = null;
-            var min_unit_dist: f32 = math.f32_max;
+            var min_unit_dist: f32 = math.floatMax(f32);
             var closest_struct: ?Unit = null;
-            var min_struct_dist: f32 = math.f32_max;
+            var min_struct_dist: f32 = math.floatMax(f32);
 
             const enemy_units = bot.enemy_units.values();
             for (enemy_units) |unit| {
@@ -536,7 +536,7 @@ const MassReaper = struct {
 
             var enemy_iterator = unit_group.UnitIterator(Point2, relevantEnemy){.buffer = enemy_units, .context = unit.position};
             var found_in_range = false;
-            var lowest_health: f32 = math.f32_max;
+            var lowest_health: f32 = math.floatMax(f32);
             var target: ?Unit = null;
             // Not checking structures because we don't want to target them early in the game
             // and we also specifically don't want to start fighting cannons

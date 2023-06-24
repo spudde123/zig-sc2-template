@@ -1,6 +1,6 @@
 # Zig-sc2-template
 
-Template for a Starcraft 2 bot for competing on [sc2ai.net](https://sc2ai.net/), written in Zig 0.10.1.
+Template for a Starcraft 2 bot for competing on [sc2ai.net](https://sc2ai.net/), written in Zig 0.11.1.
 
 ## Running
 
@@ -16,9 +16,9 @@ some maps from
 [here](https://sc2ai.net/wiki/maps/#wiki-toc-current-map-pool).
 To run a game on a specific map, you can write for example
 `zig build run -- --Map StargazersAIE`.
-4. To build a release build write `zig build -Drelease-safe`
+4. To build a release build write `zig build -Doptimize=ReleaseSafe`
 5. To build an executable that works on the sc2ai ladder write
-`zig build -Dtarget=x86_64-linux -Drelease-safe`. There is also a python script
+`zig build -Dtarget=x86_64-linux -Doptimize=ReleaseSafe`. There is also a python script
 that builds the executable and takes the files in the `ladder_build` folder to the same zip
 file, just in case you want to include some other files.
 

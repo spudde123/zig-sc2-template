@@ -72,7 +72,7 @@ const ExampleBot = struct {
 
     fn findFreeGeysir(near: Point2, units: []Unit, geysirs: []Unit) Unit {
         var closest: Unit = undefined;
-        var min_dist: f32 = std.math.f32_max;
+        var min_dist: f32 = std.math.floatMax(f32);
 
         gl: for (geysirs) |geysir| {
 
@@ -509,7 +509,7 @@ const ExampleBot = struct {
             const unit = bot.units.get(unit_tag).?;
             army_center = army_center.add(unit.position);
         }
-        const unit_count = @intToFloat(f32, self.main_force.items.len);
+        const unit_count = @floatFromInt(f32, self.main_force.items.len);
         army_center.x = army_center.x / unit_count;
         army_center.y = army_center.y / unit_count;
 
@@ -724,7 +724,7 @@ const ExampleBot = struct {
     }
 
     fn drawPathingGrid(game_info: GameInfo, actions: *Actions) void {
-        for (game_info.pathing_grid.data) |val, i| {
+        for (game_info.pathing_grid.data, 0..) |val, i| {
             const point = game_info.pathing_grid.indexToPoint(i).add(.{.x = 0.5, .y = 0.5});
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);
@@ -735,7 +735,7 @@ const ExampleBot = struct {
     }
 
     fn drawPlacementGrid(game_info: GameInfo, actions: *Actions) void {
-        for (game_info.placement_grid.data) |val, i| {
+        for (game_info.placement_grid.data, 0..) |val, i| {
             const point = game_info.placement_grid.indexToPoint(i).add(.{.x = 0.5, .y = 0.5});
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);

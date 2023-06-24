@@ -406,7 +406,7 @@ const ProtossBot = struct {
         _ = bot;
         _ = self;
         _ = actions;
-        std.sort.sort(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
+        std.sort.insertion(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
     }
 
     pub fn onStep(

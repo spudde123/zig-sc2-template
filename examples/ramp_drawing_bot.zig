@@ -153,8 +153,8 @@ const TestBot = struct {
     ) void {
         for (game_info.ramps) |ramp| {
             for (ramp.points) |point| {
-                const fx = @intToFloat(f32, point.x);
-                const fy = @intToFloat(f32, point.y);
+                const fx = @floatFromInt(f32, point.x);
+                const fy = @floatFromInt(f32, point.y);
                 const fz = game_info.getTerrainZ(.{.x = fx, .y = fy});
                 actions.debugTextWorld(
                     "o",
@@ -283,8 +283,8 @@ const TestBot = struct {
 
         for (game_info.vision_blockers) |vb| {
             for (vb.points) |point| {
-                const fx = @intToFloat(f32, point.x);
-                const fy = @intToFloat(f32, point.y);
+                const fx = @floatFromInt(f32, point.x);
+                const fy = @floatFromInt(f32, point.y);
                 const fz = game_info.getTerrainZ(.{.x = fx, .y = fy});
                 actions.debugTextWorld(
                     "o",
@@ -351,7 +351,7 @@ const TestBot = struct {
     }
 
     fn findClosestCollectingUnit(units: []bot_data.Unit, pos: Point2) bot_data.Unit {
-        var min_distance: f32 = std.math.f32_max;
+        var min_distance: f32 = std.math.floatMax(f32);
         var closest_unit: bot_data.Unit = undefined;
         for (units) |unit| {
             if (!unit.isCollecting()) continue;

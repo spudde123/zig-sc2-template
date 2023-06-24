@@ -10,7 +10,7 @@ pub fn build(b: *std.build.Builder) void {
 
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
     
     // If build is called `zig build -- example_bot`
     // we try to build example_bot.zig in the examples folder.
@@ -36,13 +36,18 @@ pub fn build(b: *std.build.Builder) void {
         }
     }
 
-    const exe = b.addExecutable(bot_name, main_file);
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.addPackagePath("zig-sc2", "lib/zig-sc2/src/runner.zig");
-    exe.install();
+    const zig_sc2 = b.addModule("zig-sc2", .{.source_file = .{ .path = "lib/zig-sc2/src/runner.zig"}});
+    const exe = b.addExecutable(.{
+        .name = bot_name,
+        .root_source_file = .{ .path = main_file },
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.addModule("zig-sc2", zig_sc2);
+    b.installArtifact(exe);
+    
+    const run_cmd = b.addRunArtifact(exe);
 
-    const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
@@ -51,9 +56,11 @@ pub fn build(b: *std.build.Builder) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    const exe_tests = b.addTest(main_file);
-    exe_tests.setTarget(target);
-    exe_tests.setBuildMode(mode);
+    const exe_tests = b.addTest(.{
+        .root_source_file = .{ .path = main_file },
+        .target = target,
+        .optimize = optimize,
+    });
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);

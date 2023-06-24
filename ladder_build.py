@@ -20,7 +20,7 @@ def main():
         print(f"{args.example} is not a valid example name.")
         return
 
-    cmd = ["zig", "build", "-Dtarget=x86_64-linux", "-Drelease-safe"]
+    cmd = ["zig", "build", "-Dtarget=x86_64-linux", "-Doptimize=ReleaseSafe"]
     exe_name = "zig-bot" if not args.example else args.example
 
     if args.example:
