@@ -37,20 +37,20 @@ const ProtossBot = struct {
     }
 
     pub fn deinit(self: *Self) void {
-       _ = self;
+        _ = self;
     }
 
     fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
-        const sin: f32 = -1 + 2*self.prng.float(f32);
-        const cos: f32 = -1 + 2*self.prng.float(f32);
-        const p = Point2{.x = cos, .y = sin};
+        const sin: f32 = -1 + 2 * self.prng.float(f32);
+        const cos: f32 = -1 + 2 * self.prng.float(f32);
+        const p = Point2{ .x = cos, .y = sin };
         return point.add(p.multiply(distance));
     }
 
     fn closerToStart(context: Point2, lhs: Point2, rhs: Point2) bool {
         return context.distanceSquaredTo(lhs) < context.distanceSquaredTo(rhs);
     }
-    
+
     fn countReady(group: []Unit, unit_id: UnitId) usize {
         var count: usize = 0;
         for (group) |unit| {
@@ -61,10 +61,9 @@ const ProtossBot = struct {
 
     fn findFreeGeysir(near: Point2, units: []Unit, geysirs: []Unit) ?Unit {
         var closest: ?Unit = null;
-        var min_dist: f32 = 12*12;
+        var min_dist: f32 = 12 * 12;
 
         gl: for (geysirs) |geysir| {
-
             for (units) |unit| {
                 if (unit.unit_type != .Assimilator) continue;
                 if (unit.position.distanceSquaredTo(geysir.position) < 1) continue :gl;
@@ -83,7 +82,7 @@ const ProtossBot = struct {
     fn runBuild(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
-        
+
         switch (self.build_step) {
             0 => {
                 if (bot.unitsPending(.Pylon) == 1) {
@@ -93,7 +92,7 @@ const ProtossBot = struct {
 
                 if (bot.food_used >= 14 and bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.depot_first.?)) |res| {
                         actions.build(res.unit.tag, .Pylon, main_base_ramp.depot_first.?, false);
                     }
@@ -108,7 +107,7 @@ const ProtossBot = struct {
                 const depots_ready = countReady(own_units, .Pylon);
                 if (bot.minerals >= 150 and depots_ready == 1) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.barracks_middle.?)) |res| {
                         actions.build(res.unit.tag, .Gateway, main_base_ramp.barracks_middle.?, false);
                     }
@@ -122,7 +121,7 @@ const ProtossBot = struct {
 
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.Nexus, own_units);
-                    
+
                     if (th_iterator.next()) |th| {
                         const geysir = unit_group.findClosestUnit(bot.vespene_geysers, th.position) orelse return;
 
@@ -154,7 +153,7 @@ const ProtossBot = struct {
 
                 if (bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
-                    
+
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
                     if (actions.findPlacement(.Pylon, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_Probe)) |res| {
@@ -189,7 +188,7 @@ const ProtossBot = struct {
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.Nexus, own_units);
                     const th = th_iterator.findClosest(game_info.start_location).?.unit;
-                    
+
                     const geysir = findFreeGeysir(th.position, own_units, bot.vespene_geysers).?;
 
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
@@ -215,9 +214,9 @@ const ProtossBot = struct {
                 const gateways_pending = bot.unitsPending(.Gateway) + bot.unitsPending(.WarpGate);
                 if (bot.minerals >= 150 and gateways_ready + gateways_pending < 4) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
-                    
+
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
-                    
+
                     if (actions.findPlacement(.Gateway, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_Probe)) |res| {
                             actions.build(res.unit.tag, .Gateway, location, false);
@@ -298,11 +297,10 @@ const ProtossBot = struct {
 
             const needed_harvesters = unit.ideal_harvesters - unit.assigned_harvesters;
             var worker_iterator = unit_group.includeType(.Probe, own_units);
-            
+
             if (needed_harvesters > 0) {
                 while (worker_iterator.next()) |worker| {
                     if (worker.isUsingAbility(.Harvest_Gather_Probe)) {
-
                         const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                         if (closest_mineral_info.distance_squared < 2) {
                             actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
@@ -337,7 +335,7 @@ const ProtossBot = struct {
         const warpgate_status = bot.upgradePending(.WarpGateResearch);
         for (units) |unit| {
             if (unit.unit_type != .Nexus or unit.build_progress < 1 or unit.energy < 50) continue;
-            
+
             if (warpgate_status > 0 and warpgate_status < 1) {
                 var cybercore_iter = unit_group.includeType(.CyberneticsCore, units);
                 const cybercore = cybercore_iter.next().?;
@@ -346,7 +344,7 @@ const ProtossBot = struct {
                     continue;
                 }
             }
-            
+
             if (!unit.hasBuff(.ChronoBoostEnergyCost)) {
                 actions.useAbilityOnUnit(unit.tag, .Effect_ChronoBoostEnergyCost, unit.tag, false);
             }
@@ -360,7 +358,7 @@ const ProtossBot = struct {
             switch (unit.unit_type) {
                 .Zealot, .Stalker => {
                     if (closest_unit_info) |info| {
-                        if (info.distance_squared < 40*40) {
+                        if (info.distance_squared < 40 * 40) {
                             actions.attackPosition(unit.tag, info.unit.position, false);
                         } else {
                             if (unit.position.distanceSquaredTo(ramp_top) > 25) {
@@ -385,7 +383,7 @@ const ProtossBot = struct {
             }
         }
     }
-    
+
     fn controlArmy(bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
@@ -401,7 +399,7 @@ const ProtossBot = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         _ = bot;
         _ = self;
@@ -413,7 +411,7 @@ const ProtossBot = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         const own_units = bot.units.values();
         self.runBuild(bot, game_info, actions);
@@ -430,14 +428,13 @@ const ProtossBot = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        result: bot_data.Result
+        result: bot_data.Result,
     ) !void {
         _ = bot;
         _ = game_info;
         _ = result;
         _ = self;
     }
-    
 };
 
 pub fn main() !void {

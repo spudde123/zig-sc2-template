@@ -37,7 +37,7 @@ const MassReaper = struct {
     reaper_map: InfluenceMap = .{},
 
     pub fn init(base_allocator: mem.Allocator) !Self {
-        var buffer = try base_allocator.alloc(u8, 5*1024*1024);
+        var buffer = try base_allocator.alloc(u8, 5 * 1024 * 1024);
         return .{
             .allocator = base_allocator,
             .fba = std.heap.FixedBufferAllocator.init(buffer),
@@ -59,7 +59,7 @@ const MassReaper = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         _ = bot;
         _ = actions;
@@ -77,10 +77,9 @@ const MassReaper = struct {
 
     fn findFreeGeysir(near: Point2, units: []Unit, geysirs: []Unit) ?Unit {
         var closest: ?Unit = null;
-        var min_dist: f32 = 12*12;
+        var min_dist: f32 = 12 * 12;
 
         gl: for (geysirs) |geysir| {
-
             for (units) |unit| {
                 if (unit.unit_type != .Refinery) continue;
                 if (unit.position.distanceSquaredTo(geysir.position) < 1) continue :gl;
@@ -99,7 +98,7 @@ const MassReaper = struct {
     fn runBuild(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
-        
+
         switch (self.build_step) {
             0 => {
                 if (bot.unitsPending(.SupplyDepot) == 1) {
@@ -109,7 +108,7 @@ const MassReaper = struct {
 
                 if (bot.food_used >= 14 and bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.depot_first.?)) |res| {
                         actions.build(res.unit.tag, .SupplyDepot, main_base_ramp.depot_first.?, false);
                     }
@@ -124,7 +123,7 @@ const MassReaper = struct {
                 const depots_ready = countReady(own_units, .SupplyDepot);
                 if (bot.minerals >= 150 and depots_ready == 1) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.barracks_middle.?)) |res| {
                         actions.build(res.unit.tag, .Barracks, main_base_ramp.barracks_middle.?, false);
                     }
@@ -138,7 +137,7 @@ const MassReaper = struct {
 
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
-                    
+
                     if (th_iterator.next()) |th| {
                         const geysir = unit_group.findClosestUnit(bot.vespene_geysers, th.position) orelse return;
 
@@ -158,7 +157,7 @@ const MassReaper = struct {
 
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
-                    
+
                     if (th_iterator.next()) |th| {
                         const geysir = findFreeGeysir(th.position, own_units, bot.vespene_geysers).?;
 
@@ -210,7 +209,7 @@ const MassReaper = struct {
 
                 if (bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosestUsingAbility(main_base_ramp.depot_second.?, .Harvest_Gather_SCV)) |res| {
                         actions.build(res.unit.tag, .SupplyDepot, main_base_ramp.depot_second.?, false);
                     }
@@ -229,7 +228,7 @@ const MassReaper = struct {
                     }
                 }
 
-                const th_types = [_]UnitId{.CommandCenter, .OrbitalCommand};
+                const th_types = [_]UnitId{ .CommandCenter, .OrbitalCommand };
                 const ths = unit_group.amountOfTypes(own_units, &th_types);
                 const max_barracks: usize = if (ths == 1) 4 else 7;
                 const current_count = countReady(own_units, .Barracks) + bot.unitsPending(.Barracks);
@@ -237,7 +236,7 @@ const MassReaper = struct {
                 // one at a time
                 if (bot.minerals >= 150 and current_count < max_barracks) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-                    
+
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
                     if (actions.findPlacement(.Barracks, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
@@ -276,7 +275,7 @@ const MassReaper = struct {
     }
 
     fn produceUnits(bot: Bot, structures: []Unit, actions: *Actions) void {
-        const reactors = [_]UnitId{.BarracksReactor, .FactoryReactor, .StarportReactor};
+        const reactors = [_]UnitId{ .BarracksReactor, .FactoryReactor, .StarportReactor };
 
         for (structures) |structure| {
             if (!structure.isReady()) continue;
@@ -291,7 +290,7 @@ const MassReaper = struct {
             };
 
             if ((!has_reactor and structure.orders.len > 0) or (has_reactor and structure.orders.len > 1)) continue;
-            
+
             switch (structure.unit_type) {
                 .Barracks => {
                     if (bot.minerals >= 50 and bot.vespene >= 50) actions.train(structure.tag, .Reaper, false);
@@ -306,7 +305,6 @@ const MassReaper = struct {
     }
 
     fn controlDepots(units: []Unit, enemies: []Unit, main_base_ramp: bot_data.Ramp, actions: *Actions) void {
-        
         var close_enemies: usize = 0;
         for (enemies) |enemy| {
             if (enemy.position.distanceSquaredTo(main_base_ramp.top_center) < 36) close_enemies += 1;
@@ -355,11 +353,10 @@ const MassReaper = struct {
 
             const needed_harvesters = unit.ideal_harvesters - unit.assigned_harvesters;
             var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
             if (needed_harvesters > 0) {
                 while (worker_iterator.next()) |worker| {
                     if (worker.isUsingAbility(.Harvest_Gather_SCV)) {
-
                         const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                         if (closest_mineral_info.distance_squared < 2) {
                             actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
@@ -394,7 +391,7 @@ const MassReaper = struct {
             var scout_sent: bool = false;
             var scout_tag: u64 = 0;
         };
-        
+
         if (ScoutState.scout_sent) {
             for (dead_units) |dead_unit| {
                 if (dead_unit.tag == ScoutState.scout_tag) {
@@ -427,7 +424,7 @@ const MassReaper = struct {
     }
 
     fn isCloseStructure(context: Point2, unit: Unit) bool {
-        const close = context.distanceSquaredTo(unit.position) < 25*25;
+        const close = context.distanceSquaredTo(unit.position) < 25 * 25;
         return !unit.is_flying and unit.is_structure and close;
     }
 
@@ -443,7 +440,7 @@ const MassReaper = struct {
             .ChangelingZerglingWings,
         };
         const good_type = mem.indexOfScalar(UnitId, &non_relevant, unit.unit_type) == null;
-        const close = context.distanceSquaredTo(unit.position) < 15*15;
+        const close = context.distanceSquaredTo(unit.position) < 15 * 15;
         return !unit.is_flying and unit.display_type == .visible and !unit.is_structure and good_type and close;
     }
 
@@ -505,7 +502,6 @@ const MassReaper = struct {
         } else {
             actions.moveToPosition(unit.tag, game_info.start_location, false);
         }
-
     }
 
     fn controlArmy(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
@@ -513,7 +509,7 @@ const MassReaper = struct {
         const enemy_units = bot.enemy_units.values();
         const heal_spot = self.reaper_map.findClosestSafeSpot(game_info.getMapCenter(), 15) orelse game_info.start_location;
         const attack_target = getAttackTarget(bot, game_info);
-        
+
         const fb = self.fba.allocator();
         defer self.fba.reset();
 
@@ -534,14 +530,14 @@ const MassReaper = struct {
                 continue;
             }
 
-            var enemy_iterator = unit_group.UnitIterator(Point2, relevantEnemy){.buffer = enemy_units, .context = unit.position};
+            var enemy_iterator = unit_group.UnitIterator(Point2, relevantEnemy){ .buffer = enemy_units, .context = unit.position };
             var found_in_range = false;
             var lowest_health: f32 = math.floatMax(f32);
             var target: ?Unit = null;
             // Not checking structures because we don't want to target them early in the game
             // and we also specifically don't want to start fighting cannons
             while (enemy_iterator.next()) |enemy| {
-                const in_range = enemy.position.distanceSquaredTo(unit.position) < reaper_range*reaper_range;
+                const in_range = enemy.position.distanceSquaredTo(unit.position) < reaper_range * reaper_range;
                 if (in_range) {
                     if (!found_in_range or enemy.health + enemy.shield < lowest_health) {
                         lowest_health = enemy.health + enemy.shield;
@@ -565,7 +561,7 @@ const MassReaper = struct {
 
             // Silly way of getting the bot to just go for it vs for example cannons if
             // we have got to a point where are late in the game and still in it
-            if (bot.time < 60*10 or enemy_iterator.exists()) {
+            if (bot.time < 60 * 10 or enemy_iterator.exists()) {
                 // Putting 4 here so we don't run away just because of creep and any
                 // unit with damage will push this over regardless
                 if (self.reaper_map.grid[self.reaper_map.pointToIndex(valid_pos)] > 4) {
@@ -573,10 +569,10 @@ const MassReaper = struct {
                     continue;
                 }
             }
-            
-            var structure_iterator = unit_group.UnitIterator(Point2, isCloseStructure){.buffer = enemy_units, .context = unit.position};
 
-            if (unit.position.distanceSquaredTo(attack_target) > 5*5) {
+            var structure_iterator = unit_group.UnitIterator(Point2, isCloseStructure){ .buffer = enemy_units, .context = unit.position };
+
+            if (unit.position.distanceSquaredTo(attack_target) > 5 * 5) {
                 // Only do pathfinding if close enemies exist
                 if (enemy_iterator.exists() or structure_iterator.exists()) {
                     if (self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, false)) |pf| {
@@ -585,8 +581,8 @@ const MassReaper = struct {
                     }
                 }
                 actions.moveToPosition(unit.tag, attack_target, false);
-            } 
-            
+            }
+
             actions.attackPosition(unit.tag, attack_target, false);
         }
     }
@@ -595,9 +591,8 @@ const MassReaper = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
-
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
@@ -618,14 +613,13 @@ const MassReaper = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        result: bot_data.Result
+        result: bot_data.Result,
     ) !void {
         _ = bot;
         _ = game_info;
         _ = result;
         _ = self;
     }
-    
 };
 
 pub fn main() !void {

@@ -11,7 +11,7 @@ pub fn build(b: *std.build.Builder) void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const optimize = b.standardOptimizeOption(.{});
-    
+
     // If build is called `zig build -- example_bot`
     // we try to build example_bot.zig in the examples folder.
     // Otherwise default to src/main.zig
@@ -36,7 +36,7 @@ pub fn build(b: *std.build.Builder) void {
         }
     }
 
-    const zig_sc2 = b.addModule("zig-sc2", .{.source_file = .{ .path = "lib/zig-sc2/src/runner.zig"}});
+    const zig_sc2 = b.addModule("zig-sc2", .{ .source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
     const exe = b.addExecutable(.{
         .name = bot_name,
         .root_source_file = .{ .path = main_file },
@@ -45,7 +45,7 @@ pub fn build(b: *std.build.Builder) void {
     });
     exe.addModule("zig-sc2", zig_sc2);
     b.installArtifact(exe);
-    
+
     const run_cmd = b.addRunArtifact(exe);
 
     run_cmd.step.dependOn(b.getInstallStep());

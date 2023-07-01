@@ -23,13 +23,13 @@ const TestBot = struct {
         self: *Self,
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions
+        actions: *bot_data.Actions,
     ) !void {
         const units = bot.units.values();
         self.first_cc_tag = cc_calc: {
             for (units) |unit| {
                 if (unit.unit_type == .CommandCenter) break :cc_calc unit.tag;
-            }    
+            }
             break :cc_calc 0;
         };
 
@@ -46,10 +46,10 @@ const TestBot = struct {
         self: *Self,
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions
+        actions: *bot_data.Actions,
     ) !void {
         const units = bot.units.values();
-        
+
         const maybe_first_cc = bot.units.get(self.first_cc_tag);
         if (maybe_first_cc == null) {
             actions.leaveGame();
@@ -140,161 +140,156 @@ const TestBot = struct {
                 actions.moveToPosition(unit.tag, res.next_point, false);
             }
             break;
-        } 
+        }
 
         drawRamps(game_info, actions);
         debugTest(game_info, actions);
         drawClimbablePoints(game_info, actions);
     }
 
-    fn drawRamps(
-        game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions
-    ) void {
+    fn drawRamps(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
         for (game_info.ramps) |ramp| {
             for (ramp.points) |point| {
                 const fx = @floatFromInt(f32, point.x);
                 const fy = @floatFromInt(f32, point.y);
-                const fz = game_info.getTerrainZ(.{.x = fx, .y = fy});
+                const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
                 actions.debugTextWorld(
                     "o",
-                    .{.x = fx + 0.5, .y = fy + 0.5, .z = fz},
-                    .{.r = 0, .g = 255, .b = 0},
-                    12
+                    .{ .x = fx + 0.5, .y = fy + 0.5, .z = fz },
+                    .{ .r = 0, .g = 255, .b = 0 },
+                    12,
                 );
             }
 
             const z = game_info.getTerrainZ(ramp.top_center);
 
             if (ramp.depot_first) |depot_first| {
-                const draw_loc = depot_first.add(.{.x = 0.5, .y = 0.5});
+                const draw_loc = depot_first.add(.{ .x = 0.5, .y = 0.5 });
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x - 1, .y = draw_loc.y, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x - 1, .y = draw_loc.y, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x, .y = draw_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x, .y = draw_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x, .y = draw_loc.y, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x, .y = draw_loc.y, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
             }
 
             if (ramp.depot_second) |depot_second| {
-                const draw_loc = depot_second.add(.{.x = 0.5, .y = 0.5});
+                const draw_loc = depot_second.add(.{ .x = 0.5, .y = 0.5 });
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x - 1, .y = draw_loc.y, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x - 1, .y = draw_loc.y, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x, .y = draw_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x, .y = draw_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = draw_loc.x, .y = draw_loc.y, .z = z},
-                    .{.r = 0, .g = 0, .b = 255},
-                    16
+                    .{ .x = draw_loc.x, .y = draw_loc.y, .z = z },
+                    .{ .r = 0, .g = 0, .b = 255 },
+                    16,
                 );
             }
 
             if (ramp.barracks_middle) |rax_loc| {
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x - 1, .y = rax_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x - 1, .y = rax_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x - 1, .y = rax_loc.y, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x - 1, .y = rax_loc.y, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x - 1, .y = rax_loc.y + 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x - 1, .y = rax_loc.y + 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x, .y = rax_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x, .y = rax_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x, .y = rax_loc.y, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x, .y = rax_loc.y, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x, .y = rax_loc.y + 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x, .y = rax_loc.y + 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x + 1, .y = rax_loc.y - 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x + 1, .y = rax_loc.y - 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x + 1, .y = rax_loc.y, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x + 1, .y = rax_loc.y, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
                 actions.debugTextWorld(
                     "o",
-                    .{.x = rax_loc.x + 1, .y = rax_loc.y + 1, .z = z},
-                    .{.r = 0, .g = 255, .b = 255},
-                    16
+                    .{ .x = rax_loc.x + 1, .y = rax_loc.y + 1, .z = z },
+                    .{ .r = 0, .g = 255, .b = 255 },
+                    16,
                 );
             }
-
         }
 
         for (game_info.vision_blockers) |vb| {
             for (vb.points) |point| {
                 const fx = @floatFromInt(f32, point.x);
                 const fy = @floatFromInt(f32, point.y);
-                const fz = game_info.getTerrainZ(.{.x = fx, .y = fy});
+                const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
                 actions.debugTextWorld(
                     "o",
-                    .{.x = fx + 0.5, .y = fy + 0.5, .z = fz},
-                    .{.r = 255, .g = 0, .b = 0},
-                    12
+                    .{ .x = fx + 0.5, .y = fy + 0.5, .z = fz },
+                    .{ .r = 255, .g = 0, .b = 0 },
+                    12,
                 );
             }
         }
-
     }
 
     fn debugTest(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
@@ -305,36 +300,35 @@ const TestBot = struct {
         actions.debugLine(
             bot_data.Point3.fromPoint2(line_start, z + 5),
             bot_data.Point3.fromPoint2(line_end, z + 5),
-            .{.r = 255, .g = 0, .b = 0},
+            .{ .r = 255, .g = 0, .b = 0 },
         );
 
-        const box_start = line_start.add(.{.x = 5, .y = 5});
-        const box_end = box_start.add(.{.x = 10, .y = 10});
+        const box_start = line_start.add(.{ .x = 5, .y = 5 });
+        const box_end = box_start.add(.{ .x = 10, .y = 10 });
         actions.debugBox(
             bot_data.Point3.fromPoint2(box_start, z + 2),
             bot_data.Point3.fromPoint2(box_end, z + 12),
-            .{.r = 0, .g = 255, .b = 0},
+            .{ .r = 0, .g = 255, .b = 0 },
         );
 
-        const sphere_pos = box_end.add(.{.x = 5, .y = 5});
+        const sphere_pos = box_end.add(.{ .x = 5, .y = 5 });
         actions.debugSphere(
             bot_data.Point3.fromPoint2(sphere_pos, z + 5),
             4,
-            .{.r = 0, .g = 0, .b = 255},
+            .{ .r = 0, .g = 0, .b = 255 },
         );
     }
 
     fn drawClimbablePoints(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
         for (game_info.climbable_points) |index| {
-            const point = game_info.pathing_grid.indexToPoint(index).add(.{.x = 0.5, .y = 0.5});
+            const point = game_info.pathing_grid.indexToPoint(index).add(.{ .x = 0.5, .y = 0.5 });
             const z = game_info.getTerrainZ(point);
             actions.debugTextWorld(
                 "x",
                 bot_data.Point3.fromPoint2(point, z),
-                .{.r = 0, .g = 255, .b = 0},
-                24
+                .{ .r = 0, .g = 255, .b = 0 },
+                24,
             );
-            
         }
     }
 
@@ -342,7 +336,7 @@ const TestBot = struct {
         self: *Self,
         bot: bot_data.Bot,
         game_info: bot_data.GameInfo,
-        result: bot_data.Result
+        result: bot_data.Result,
     ) !void {
         _ = bot;
         _ = game_info;
@@ -370,7 +364,7 @@ pub fn main() !void {
     const gpa = gpa_instance.allocator();
     defer _ = gpa_instance.deinit();
 
-    var my_bot = TestBot{.name = "zig-bot", .race = .terran, .allocator = gpa};
+    var my_bot = TestBot{ .name = "zig-bot", .race = .terran, .allocator = gpa };
 
     try zig_sc2.run(&my_bot, 2, gpa, .{});
 }

@@ -22,7 +22,6 @@ const ArmyState = enum {
 /// name and race. The only required functions are onStart,
 /// onStep and onResult with function signatures as seen below.
 const ExampleBot = struct {
-
     allocator: mem.Allocator,
     // These are mandatory
     name: []const u8,
@@ -40,7 +39,7 @@ const ExampleBot = struct {
             .name = "ExampleBot",
             .race = .terran,
             .main_force = try std.ArrayList(u64).initCapacity(base_allocator, 60),
-            .new_army = try std.ArrayList(u64).initCapacity(base_allocator, 30)
+            .new_army = try std.ArrayList(u64).initCapacity(base_allocator, 30),
         };
     }
 
@@ -53,7 +52,7 @@ const ExampleBot = struct {
         self: *ExampleBot,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         _ = bot;
         _ = self;
@@ -75,7 +74,6 @@ const ExampleBot = struct {
         var min_dist: f32 = std.math.floatMax(f32);
 
         gl: for (geysirs) |geysir| {
-
             for (units) |unit| {
                 if (unit.unit_type != .Refinery) continue;
                 if (unit.position.distanceSquaredTo(geysir.position) < 1) continue :gl;
@@ -94,7 +92,7 @@ const ExampleBot = struct {
     fn runBuild(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
-        
+
         switch (self.build_step) {
             0 => {
                 if (bot.unitsPending(.SupplyDepot) == 1) {
@@ -104,7 +102,7 @@ const ExampleBot = struct {
 
                 if (bot.food_used >= 14 and bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.depot_first.?)) |res| {
                         actions.build(res.unit.tag, .SupplyDepot, main_base_ramp.depot_first.?, false);
                     }
@@ -119,7 +117,7 @@ const ExampleBot = struct {
                 const depots_ready = countReady(own_units, .SupplyDepot);
                 if (bot.minerals >= 150 and depots_ready == 1) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosest(main_base_ramp.barracks_with_addon.?)) |res| {
                         actions.build(res.unit.tag, .Barracks, main_base_ramp.barracks_with_addon.?, false);
                     }
@@ -133,7 +131,7 @@ const ExampleBot = struct {
 
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
-                    
+
                     if (th_iterator.next()) |th| {
                         const geysir = unit_group.findClosestUnit(bot.vespene_geysers, th.position) orelse return;
 
@@ -153,7 +151,7 @@ const ExampleBot = struct {
 
                 if (bot.minerals >= 75) {
                     var th_iterator = unit_group.includeType(.CommandCenter, own_units);
-                    
+
                     if (th_iterator.next()) |th| {
                         const geysir = findFreeGeysir(th.position, own_units, bot.vespene_geysers);
 
@@ -205,7 +203,7 @@ const ExampleBot = struct {
 
                 if (bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
                     if (worker_iterator.findClosestUsingAbility(main_base_ramp.depot_second.?, .Harvest_Gather_SCV)) |res| {
                         actions.build(res.unit.tag, .SupplyDepot, main_base_ramp.depot_second.?, false);
                     }
@@ -232,7 +230,7 @@ const ExampleBot = struct {
 
                 if (bot.minerals >= 150 and bot.vespene >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-                    
+
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
                     if (game_info.findPlacement(.Starport, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
@@ -288,7 +286,7 @@ const ExampleBot = struct {
                 // one at a time
                 if (bot.minerals >= 400 and bot.unitsPending(.Barracks) == 0) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
-                    
+
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
                     if (game_info.findPlacement(.Barracks, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
@@ -301,7 +299,7 @@ const ExampleBot = struct {
     }
 
     fn produceUnits(bot: Bot, structures: []Unit, actions: *Actions) void {
-        const reactors = [_]UnitId{.BarracksReactor, .FactoryReactor, .StarportReactor};
+        const reactors = [_]UnitId{ .BarracksReactor, .FactoryReactor, .StarportReactor };
 
         for (structures) |structure| {
             if (!structure.isReady()) continue;
@@ -316,7 +314,7 @@ const ExampleBot = struct {
             };
 
             if ((!has_reactor and structure.orders.len > 0) or (has_reactor and structure.orders.len > 1)) continue;
-            
+
             switch (structure.unit_type) {
                 .Barracks => {
                     actions.train(structure.tag, .Marine, false);
@@ -337,7 +335,6 @@ const ExampleBot = struct {
     }
 
     fn controlDepots(units: []Unit, enemies: []Unit, main_base_ramp: bot_data.Ramp, actions: *Actions) void {
-        
         var close_enemies: usize = 0;
         for (enemies) |enemy| {
             if (enemy.position.distanceSquaredTo(main_base_ramp.top_center) < 36) close_enemies += 1;
@@ -378,11 +375,10 @@ const ExampleBot = struct {
 
             const needed_harvesters = unit.ideal_harvesters - unit.assigned_harvesters;
             var worker_iterator = unit_group.includeType(.SCV, own_units);
-            
+
             if (needed_harvesters > 0) {
                 while (worker_iterator.next()) |worker| {
                     if (worker.isUsingAbility(.Harvest_Gather_SCV)) {
-
                         const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                         if (closest_mineral_info.distance_squared < 2) {
                             actions.useAbilityOnUnit(worker.tag, .Smart, unit.tag, false);
@@ -463,8 +459,8 @@ const ExampleBot = struct {
         const rest_point = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -4);
 
         const enemy_units = bot.enemy_units.values();
-        var army_iterator = unit_group.UnitIterator(void, isArmy){.buffer = enemy_units, .context = {}};
-        
+        var army_iterator = unit_group.UnitIterator(void, isArmy){ .buffer = enemy_units, .context = {} };
+
         if (army_iterator.findClosest(start_location)) |closest_info| {
             // If there is an enemy unit pretty close by we chase
             // after it with marines but leave tanks and liberators
@@ -528,7 +524,7 @@ const ExampleBot = struct {
                 i += 1;
             }
         }
-        var visible_enemy_iterator = unit_group.UnitIterator(void, notCloaked){.buffer = bot.enemy_units.values(), .context = {}};
+        var visible_enemy_iterator = unit_group.UnitIterator(void, notCloaked){ .buffer = bot.enemy_units.values(), .context = {} };
 
         const closest_enemy_info = visible_enemy_iterator.findClosest(army_center);
         var target: Point2 = undefined;
@@ -553,7 +549,7 @@ const ExampleBot = struct {
             }
         }
 
-        const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
+        const tank_types = [_]UnitId{ .SiegeTank, .SiegeTankSieged };
         var tank_iter = unit_group.includeTypes(&tank_types, own_units);
         const closest_tank_info = tank_iter.findClosest(target);
 
@@ -622,7 +618,7 @@ const ExampleBot = struct {
                     } else {
                         actions.attackPosition(unit_tag, target, false);
                     }
-                }
+                },
             }
         }
     }
@@ -640,7 +636,7 @@ const ExampleBot = struct {
                 actions.useAbility(unit_tag, .Morph_LiberatorAAMode, false);
                 queue_first = true;
             }
-            
+
             actions.attackPosition(unit_tag, game_info.expansion_locations[0], queue_first);
 
             for (game_info.expansion_locations[1..]) |exp| {
@@ -655,9 +651,9 @@ const ExampleBot = struct {
 
         switch (self.army_state) {
             .defend => {
-                const tank_types = [_]UnitId{.SiegeTank, .SiegeTankSieged};
+                const tank_types = [_]UnitId{ .SiegeTank, .SiegeTankSieged };
                 const tank_count = unit_group.amountOfTypes(own_units, &tank_types);
-                const liberator_types = [_]UnitId{.Liberator, .LiberatorAG};
+                const liberator_types = [_]UnitId{ .Liberator, .LiberatorAG };
                 const liberator_count = unit_group.amountOfTypes(own_units, &liberator_types);
 
                 if (tank_count >= 2 and liberator_count >= 1) {
@@ -697,7 +693,7 @@ const ExampleBot = struct {
                 const SearchState = struct {
                     var commands_given: bool = false;
                 };
-                
+
                 for (bot.enemies_entered_vision) |enemy_tag| {
                     const unit = bot.enemy_units.get(enemy_tag).?;
                     if (unit.cloak != .cloaked and unit.is_structure) {
@@ -725,22 +721,22 @@ const ExampleBot = struct {
 
     fn drawPathingGrid(game_info: GameInfo, actions: *Actions) void {
         for (game_info.pathing_grid.data, 0..) |val, i| {
-            const point = game_info.pathing_grid.indexToPoint(i).add(.{.x = 0.5, .y = 0.5});
+            const point = game_info.pathing_grid.indexToPoint(i).add(.{ .x = 0.5, .y = 0.5 });
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);
             if (val > 0) {
-                actions.debugTextWorld("X", p3, .{.r = 255, .g = 255, .b = 0}, 24);
+                actions.debugTextWorld("X", p3, .{ .r = 255, .g = 255, .b = 0 }, 24);
             }
         }
     }
 
     fn drawPlacementGrid(game_info: GameInfo, actions: *Actions) void {
         for (game_info.placement_grid.data, 0..) |val, i| {
-            const point = game_info.placement_grid.indexToPoint(i).add(.{.x = 0.5, .y = 0.5});
+            const point = game_info.placement_grid.indexToPoint(i).add(.{ .x = 0.5, .y = 0.5 });
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);
             if (val > 0) {
-                actions.debugTextWorld("X", p3, .{.r = 255, .g = 255, .b = 0}, 24);
+                actions.debugTextWorld("X", p3, .{ .r = 255, .g = 255, .b = 0 }, 24);
             }
         }
     }
@@ -749,7 +745,7 @@ const ExampleBot = struct {
         self: *ExampleBot,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
@@ -772,14 +768,13 @@ const ExampleBot = struct {
         self: *ExampleBot,
         bot: Bot,
         game_info: GameInfo,
-        result: bot_data.Result
+        result: bot_data.Result,
     ) !void {
         _ = bot;
         _ = game_info;
         _ = result;
         _ = self;
     }
-    
 };
 
 pub fn main() !void {

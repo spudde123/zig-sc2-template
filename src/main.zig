@@ -33,14 +33,14 @@ const MyBot = struct {
     }
 
     pub fn deinit(self: *Self) void {
-       _ = self;
+        _ = self;
     }
 
     pub fn onStart(
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
         _ = bot;
         _ = self;
@@ -52,25 +52,24 @@ const MyBot = struct {
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        actions: *Actions
+        actions: *Actions,
     ) !void {
-       _ = self;
-       _ = game_info;
-       if (bot.time >= 60) actions.leaveGame();
+        _ = self;
+        _ = game_info;
+        if (bot.time >= 60) actions.leaveGame();
     }
 
     pub fn onResult(
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
-        result: bot_data.Result
+        result: bot_data.Result,
     ) !void {
         _ = bot;
         _ = game_info;
         _ = result;
         _ = self;
     }
-    
 };
 
 pub fn main() !void {
