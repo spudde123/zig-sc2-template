@@ -26,7 +26,7 @@ const ProtossBot = struct {
     race: bot_data.Race,
 
     pub fn init(base_allocator: mem.Allocator) !Self {
-        const seed = @truncate(u64, @bitCast(u128, std.time.nanoTimestamp()));
+        const seed = @as(u64, @truncate(@as(u128, @bitCast(std.time.nanoTimestamp()))));
         var xoshiro = std.rand.DefaultPrng.init(seed);
         return .{
             .allocator = base_allocator,

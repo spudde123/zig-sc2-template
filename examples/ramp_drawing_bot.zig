@@ -150,8 +150,8 @@ const TestBot = struct {
     fn drawRamps(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
         for (game_info.ramps) |ramp| {
             for (ramp.points) |point| {
-                const fx = @floatFromInt(f32, point.x);
-                const fy = @floatFromInt(f32, point.y);
+                const fx = @as(f32, @floatFromInt(point.x));
+                const fy = @as(f32, @floatFromInt(point.y));
                 const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
                 actions.debugTextWorld(
                     "o",
@@ -279,8 +279,8 @@ const TestBot = struct {
 
         for (game_info.vision_blockers) |vb| {
             for (vb.points) |point| {
-                const fx = @floatFromInt(f32, point.x);
-                const fy = @floatFromInt(f32, point.y);
+                const fx = @as(f32, @floatFromInt(point.x));
+                const fy = @as(f32, @floatFromInt(point.y));
                 const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
                 actions.debugTextWorld(
                     "o",

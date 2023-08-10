@@ -505,7 +505,7 @@ const ExampleBot = struct {
             const unit = bot.units.get(unit_tag).?;
             army_center = army_center.add(unit.position);
         }
-        const unit_count = @floatFromInt(f32, self.main_force.items.len);
+        const unit_count = @as(f32, @floatFromInt(self.main_force.items.len));
         army_center.x = army_center.x / unit_count;
         army_center.y = army_center.y / unit_count;
 
