@@ -24,7 +24,7 @@ def main():
     exe_name = "zig-bot" if not args.example else args.example
 
     if args.example:
-        cmd.extend(["--", args.example])
+        cmd.append("-Dexample={}".format(args.example))
 
     subprocess.run(cmd)
     

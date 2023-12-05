@@ -1,5 +1,6 @@
 const std = @import("std");
 const fs = std.fs;
+const mem = std.mem;
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -12,29 +13,29 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const optimize = b.standardOptimizeOption(.{});
 
-    // If build is called `zig build -- example_bot`
+    // If build is called with `zig build -Dexample=example_bot`
     // we try to build example_bot.zig in the examples folder.
     // Otherwise default to src/main.zig
     var main_file: []const u8 = "src/main.zig";
     var bot_name: []const u8 = "zig-bot";
     var buf: [256]u8 = undefined;
 
-    first_arg: {
-        if (b.args) |args| {
-            const file_to_test = std.fmt.bufPrint(&buf, "examples/{s}.zig", .{args[0]}) catch {
-                std.log.err("Invalid example\n", .{});
-                return;
-            };
+    if (b.option([]const u8, "example", "Example name")) |example_name| {
+        const file_to_test = std.fmt.bufPrint(&buf, "examples/{s}.zig", .{example_name}) catch {
+            std.log.err("Invalid example\n", .{});
+            return;
+        };
 
-            const file = fs.cwd().openFile(file_to_test, .{}) catch {
-                std.log.info("Building src/main.zig\n", .{});
-                break :first_arg;
-            };
-            defer file.close();
-            main_file = file_to_test;
-            bot_name = args[0];
-        }
+        const file = fs.cwd().openFile(file_to_test, .{}) catch {
+            std.log.err("Can't find example {s}\n", .{example_name});
+            return;
+        };
+        defer file.close();
+        main_file = file_to_test;
+        bot_name = example_name;
     }
+
+    std.log.info("Building {s}\n", .{main_file});
 
     const zig_sc2 = b.addModule("zig-sc2", .{ .source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
     const exe = b.addExecutable(.{

@@ -26,9 +26,8 @@ file, just in case you want to include some other files.
 
 The examples folder includes some bots, one of which competes on the
 sc2ai ladder. To quickly run for example the bot `one_base_terran` you
-can write `zig build run -- one_base_terran`. In general `zig build`
-builds your bot in `src/main` if you don't give it parameters. If you
-do it tries to build an example according to the first parameter name.
+can write `zig build run -Dexample=one_base_terran`. `zig build`
+builds your bot in `src/main.zig` if you don't give it an example as a parameter.
 
 ## Status
 

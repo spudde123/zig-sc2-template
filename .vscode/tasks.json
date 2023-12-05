@@ -11,7 +11,7 @@
         {
             "label": "build-zigster",
             "type": "shell",
-            "command": "zig build -- one_base_terran"
+            "command": "zig build -Dexample=one_base_terran"
         }
     ]
 }
