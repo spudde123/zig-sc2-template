@@ -12,13 +12,13 @@ const Unit = bot_data.Unit;
 const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
 const BuffId = bot_data.BuffId;
-const Random = std.rand.Random;
+const Prng = std.rand.DefaultPrng;
 
 const ProtossBot = struct {
     const Self = @This();
 
     allocator: mem.Allocator,
-    prng: Random,
+    prng: Prng,
     build_step: u8 = 0,
 
     // These are mandatory
@@ -26,13 +26,11 @@ const ProtossBot = struct {
     race: bot_data.Race,
 
     pub fn init(base_allocator: mem.Allocator) !Self {
-        const seed = @as(u64, @truncate(@as(u128, @bitCast(std.time.nanoTimestamp()))));
-        var xoshiro = std.rand.DefaultPrng.init(seed);
         return .{
             .allocator = base_allocator,
             .name = "ProtossBot",
             .race = .protoss,
-            .prng = xoshiro.random(),
+            .prng = std.rand.DefaultPrng.init(0),
         };
     }
 
@@ -41,8 +39,8 @@ const ProtossBot = struct {
     }
 
     fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
-        const sin: f32 = -1 + 2 * self.prng.float(f32);
-        const cos: f32 = -1 + 2 * self.prng.float(f32);
+        const sin: f32 = -1 + 2 * self.prng.random().float(f32);
+        const cos: f32 = -1 + 2 * self.prng.random().float(f32);
         const p = Point2{ .x = cos, .y = sin };
         return point.add(p.multiply(distance));
     }
