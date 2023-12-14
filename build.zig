@@ -3,6 +3,7 @@ const fs = std.fs;
 const mem = std.mem;
 
 pub fn build(b: *std.build.Builder) void {
+    const compile_log = std.log.scoped(.compilation);
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -35,7 +36,7 @@ pub fn build(b: *std.build.Builder) void {
         bot_name = example_name;
     }
 
-    std.log.info("Building {s}\n", .{main_file});
+    compile_log.info("Building {s}\n", .{main_file});
 
     const zig_sc2 = b.addModule("zig-sc2", .{ .source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
     const exe = b.addExecutable(.{
