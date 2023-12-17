@@ -581,6 +581,7 @@ const MassReaper = struct {
                     }
                 }
                 actions.moveToPosition(unit.tag, attack_target, false);
+                continue;
             }
 
             actions.attackPosition(unit.tag, attack_target, false);
