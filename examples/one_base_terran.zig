@@ -720,7 +720,10 @@ const ExampleBot = struct {
     }
 
     fn drawPathingGrid(game_info: GameInfo, actions: *Actions) void {
-        for (game_info.pathing_grid.data, 0..) |val, i| {
+        const w = game_info.pathing_grid.w;
+        const h = game_info.pathing_grid.h;
+        for (0..w * h) |i| {
+            const val = game_info.pathing_grid.getValueIndex(i);
             const point = game_info.pathing_grid.indexToPoint(i).add(.{ .x = 0.5, .y = 0.5 });
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);
@@ -731,7 +734,10 @@ const ExampleBot = struct {
     }
 
     fn drawPlacementGrid(game_info: GameInfo, actions: *Actions) void {
-        for (game_info.placement_grid.data, 0..) |val, i| {
+        const w = game_info.placement_grid.w;
+        const h = game_info.placement_grid.h;
+        for (0..w * h) |i| {
+            const val = game_info.placement_grid.getValueIndex(i);
             const point = game_info.placement_grid.indexToPoint(i).add(.{ .x = 0.5, .y = 0.5 });
             const z = game_info.getTerrainZ(point);
             const p3 = bot_data.grids.Point3.fromPoint2(point, z);
