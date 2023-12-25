@@ -29,9 +29,9 @@ def main():
     subprocess.run(cmd)
     
     with zipfile.ZipFile(f"{args.name}.zip", 'w', zipfile.ZIP_DEFLATED) as zip_folder:
-        files = os.listdir("./ladder_build")
+        files = os.listdir("./config")
         for file in files:
-            zip_folder.write(f"./ladder_build/{file}", arcname=file)
+            zip_folder.write(f"./config/{file}")
         zip_folder.write(f"./zig-out/bin/{exe_name}", arcname=args.name)
 
 

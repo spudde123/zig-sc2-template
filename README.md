@@ -19,8 +19,8 @@ To run a game on a specific map, you can write for example
 4. To build a release build write `zig build -Doptimize=ReleaseSafe`
 5. To build an executable that works on the sc2ai ladder write
 `zig build -Dtarget=x86_64-linux -Doptimize=ReleaseSafe`. There is also a python script
-that builds the executable and takes the files in the `ladder_build` folder to the same zip
-file, just in case you want to include some other files.
+that builds the executable and takes the files in the `config` folder to the same zip
+file, just in case you want to include some other files that your bot relies on.
 
 ## Examples
 
