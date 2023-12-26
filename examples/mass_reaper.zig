@@ -282,7 +282,7 @@ const MassReaper = struct {
 
             const has_reactor = r: {
                 if (structure.addon_tag == 0) break :r false;
-                const addon = bot.units.get(structure.addon_tag).?;
+                const addon = bot.units.get(structure.addon_tag) orelse continue;
                 if (mem.indexOfScalar(UnitId, &reactors, addon.unit_type)) |_| {
                     break :r true;
                 }
@@ -367,7 +367,7 @@ const MassReaper = struct {
             } else if (needed_harvesters < 0) {
                 while (worker_iterator.next()) |worker| {
                     if (worker.orders.len == 0) continue;
-                    if (worker.orders[0].ability_id == .Harvest_Gather_SCV and worker.orders[0].target.tag == unit.tag) {
+                    if (worker.orders[0].ability_id == .Harvest_Gather_SCV and worker.orders[0].target == .tag and worker.orders[0].target.tag == unit.tag) {
                         const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                         actions.useAbilityOnUnit(worker.tag, .Smart, closest_mineral_info.unit.tag, false);
                         break;

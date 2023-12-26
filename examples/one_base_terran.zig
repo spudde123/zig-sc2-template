@@ -306,7 +306,7 @@ const ExampleBot = struct {
 
             const has_reactor = r: {
                 if (structure.addon_tag == 0) break :r false;
-                const addon = bot.units.get(structure.addon_tag).?;
+                const addon = bot.units.get(structure.addon_tag) orelse continue;
                 if (mem.indexOfScalar(UnitId, &reactors, addon.unit_type)) |_| {
                     break :r true;
                 }
@@ -361,7 +361,7 @@ const ExampleBot = struct {
     fn rallyBuildings(bot: Bot, game_info: GameInfo, actions: *Actions) void {
         const main_base_ramp = game_info.getMainBaseRamp();
         for (bot.units_created) |new_unit_tag| {
-            const unit = bot.units.get(new_unit_tag).?;
+            const unit = bot.units.get(new_unit_tag) orelse continue;
             if (unit.unit_type != .Barracks and unit.unit_type != .Factory and unit.unit_type != .Starport) continue;
             const target = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -7);
             actions.useAbilityOnPosition(unit.tag, .Smart, target, false);
@@ -389,7 +389,7 @@ const ExampleBot = struct {
             } else if (needed_harvesters < 0) {
                 while (worker_iterator.next()) |worker| {
                     if (worker.orders.len == 0) continue;
-                    if (worker.orders[0].ability_id == .Harvest_Gather_SCV and worker.orders[0].target.tag == unit.tag) {
+                    if (worker.orders[0].ability_id == .Harvest_Gather_SCV and worker.orders[0].target == .tag and worker.orders[0].target.tag == unit.tag) {
                         const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, worker.position) orelse return;
                         actions.useAbilityOnUnit(worker.tag, .Smart, closest_mineral_info.unit.tag, false);
                         break;
@@ -426,7 +426,7 @@ const ExampleBot = struct {
             .LiberatorAG,
         };
         for (bot.units_created) |new_unit_tag| {
-            const new_unit = bot.units.get(new_unit_tag).?;
+            const new_unit = bot.units.get(new_unit_tag) orelse continue;
             if (mem.indexOfScalar(UnitId, &army_types, new_unit.unit_type)) |_| {
                 if (self.army_state == .attack) {
                     self.new_army.append(new_unit_tag) catch continue;
@@ -467,7 +467,7 @@ const ExampleBot = struct {
             // near the ramp
             if (closest_info.distance_squared <= 400) {
                 for (self.main_force.items) |unit_tag| {
-                    const unit = bot.units.get(unit_tag).?;
+                    const unit = bot.units.get(unit_tag) orelse continue;
                     if (unit.unit_type == .Marine) actions.attackPosition(unit_tag, closest_info.unit.position, false);
                 }
                 return;
@@ -477,7 +477,7 @@ const ExampleBot = struct {
         const middle_of_ramp = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, 3);
 
         for (self.main_force.items) |unit_tag| {
-            const unit = bot.units.get(unit_tag).?;
+            const unit = bot.units.get(unit_tag) orelse continue;
             if (unit.position.distanceSquaredTo(rest_point) >= 25) {
                 switch (unit.unit_type) {
                     .SiegeTankSieged => actions.useAbility(unit_tag, .Unsiege_Unsiege, false),
@@ -501,18 +501,25 @@ const ExampleBot = struct {
 
     fn attack(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         var army_center: Point2 = .{};
+        var unit_count = @as(f32, @floatFromInt(self.main_force.items.len));
+
         for (self.main_force.items) |unit_tag| {
-            const unit = bot.units.get(unit_tag).?;
+            const unit = bot.units.get(unit_tag) orelse {
+                unit_count -= 1;
+                continue;
+            };
             army_center = army_center.add(unit.position);
         }
-        const unit_count = @as(f32, @floatFromInt(self.main_force.items.len));
         army_center.x = army_center.x / unit_count;
         army_center.y = army_center.y / unit_count;
 
         var i: usize = 0;
         while (i < self.new_army.items.len) {
             const unit_tag = self.new_army.items[i];
-            const unit = bot.units.get(unit_tag).?;
+            const unit = bot.units.get(unit_tag) orelse {
+                i += 1;
+                continue;
+            };
             if (unit.position.distanceSquaredTo(army_center) < 125) {
                 self.main_force.append(unit_tag) catch {
                     i += 1;
@@ -554,7 +561,7 @@ const ExampleBot = struct {
         const closest_tank_info = tank_iter.findClosest(target);
 
         for (self.main_force.items) |unit_tag| {
-            const unit = bot.units.get(unit_tag).?;
+            const unit = bot.units.get(unit_tag) orelse continue;
             switch (unit.unit_type) {
                 .SiegeTankSieged => {
                     if (unit.position.distanceSquaredTo(target) > 140) {
@@ -627,7 +634,7 @@ const ExampleBot = struct {
     // enemy buildings
     fn search(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
         for (self.main_force.items) |unit_tag| {
-            const unit = bot.units.get(unit_tag).?;
+            const unit = bot.units.get(unit_tag) orelse continue;
             var queue_first = false;
             if (unit.unit_type == .SiegeTankSieged) {
                 actions.useAbility(unit_tag, .Unsiege_Unsiege, false);
@@ -695,7 +702,7 @@ const ExampleBot = struct {
                 };
 
                 for (bot.enemies_entered_vision) |enemy_tag| {
-                    const unit = bot.enemy_units.get(enemy_tag).?;
+                    const unit = bot.enemy_units.get(enemy_tag) orelse continue;
                     if (unit.cloak != .cloaked and unit.is_structure) {
                         SearchState.commands_given = false;
                         self.army_state = .attack;
@@ -711,7 +718,7 @@ const ExampleBot = struct {
                 // tank or liberator doesn't seem to work on one go
                 // so let's redo them if needed
                 for (self.main_force.items) |unit_tag| {
-                    const unit = bot.units.get(unit_tag).?;
+                    const unit = bot.units.get(unit_tag) orelse continue;
                     if (unit.orders.len <= 1) return;
                 }
                 SearchState.commands_given = true;
