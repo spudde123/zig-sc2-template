@@ -366,5 +366,5 @@ pub fn main() !void {
 
     var my_bot = TestBot{ .name = "zig-bot", .race = .terran, .allocator = gpa };
 
-    try zig_sc2.run(&my_bot, 2, gpa, .{});
+    try zig_sc2.run(&my_bot, 2, gpa);
 }

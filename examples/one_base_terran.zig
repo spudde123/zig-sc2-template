@@ -437,8 +437,17 @@ const ExampleBot = struct {
         }
     }
 
-    fn handleDeadUnits(self: *ExampleBot, dead_units: []Unit) void {
+    fn handleDeadUnits(self: *ExampleBot, dead_units: []Unit, disappeared_units: []Unit) void {
         for (dead_units) |unit| {
+            if (mem.indexOfScalar(u64, self.main_force.items, unit.tag)) |index| {
+                _ = self.main_force.swapRemove(index);
+            }
+            if (mem.indexOfScalar(u64, self.new_army.items, unit.tag)) |index| {
+                _ = self.new_army.swapRemove(index);
+            }
+        }
+
+        for (disappeared_units) |unit| {
             if (mem.indexOfScalar(u64, self.main_force.items, unit.tag)) |index| {
                 _ = self.main_force.swapRemove(index);
             }
@@ -772,7 +781,7 @@ const ExampleBot = struct {
         if (bot.time < 240) useMules(own_units, bot.mineral_patches, actions);
         produceUnits(bot, own_units, actions);
 
-        self.handleDeadUnits(bot.dead_units);
+        self.handleDeadUnits(bot.dead_units, bot.disappeared_units);
         self.handleNewArmy(bot);
         self.controlArmy(bot, game_info, actions);
     }
@@ -798,5 +807,5 @@ pub fn main() !void {
     var my_bot = try ExampleBot.init(gpa);
     defer my_bot.deinit();
 
-    try zig_sc2.run(&my_bot, 2, gpa, .{});
+    try zig_sc2.run(&my_bot, 2, gpa);
 }
