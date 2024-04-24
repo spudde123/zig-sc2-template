@@ -11,6 +11,7 @@ const unit_group = bot_data.unit_group;
 const Unit = bot_data.Unit;
 const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
+const grid_utils = bot_data.grid_utils;
 
 const ArmyState = enum {
     defend,
@@ -187,7 +188,7 @@ const ExampleBot = struct {
                 if (bot.minerals >= 150 and bot.vespene >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
                     const location_candidate = main_base_ramp.top_center.towards(game_info.start_location, 8);
-                    if (game_info.findPlacement(.FactoryTechLab, location_candidate, 20)) |location| {
+                    if (grid_utils.findPlacement(game_info.placement_grid, .FactoryTechLab, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .Factory, location, false);
                         }
@@ -232,7 +233,7 @@ const ExampleBot = struct {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
 
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
-                    if (game_info.findPlacement(.Starport, location_candidate, 20)) |location| {
+                    if (grid_utils.findPlacement(game_info.placement_grid, .Starport, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .Starport, location, false);
                         }
@@ -262,7 +263,7 @@ const ExampleBot = struct {
                 if (bot.minerals >= 100) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
                     const location_candidate = game_info.start_location.towards(main_base_ramp.top_center, 5);
-                    if (game_info.findPlacement(.SupplyDepot, location_candidate, 20)) |location| {
+                    if (grid_utils.findPlacement(game_info.placement_grid, .SupplyDepot, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .SupplyDepot, location, false);
                         }
@@ -275,7 +276,7 @@ const ExampleBot = struct {
                 if (bot.food_cap < 200 and bot.minerals >= 100 and (supply_left < 10 and depots_pending == 0) or (supply_left < 3 and depots_pending == 1)) {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
                     const location_candidate = game_info.start_location.towards(main_base_ramp.top_center, 5);
-                    if (game_info.findPlacement(.SupplyDepot, location_candidate, 20)) |location| {
+                    if (grid_utils.findPlacement(game_info.placement_grid, .SupplyDepot, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .SupplyDepot, location, false);
                         }
@@ -288,7 +289,7 @@ const ExampleBot = struct {
                     var worker_iterator = unit_group.includeType(.SCV, own_units);
 
                     const location_candidate = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -15);
-                    if (game_info.findPlacement(.Barracks, location_candidate, 20)) |location| {
+                    if (grid_utils.findPlacement(game_info.placement_grid, .Barracks, location_candidate, 20)) |location| {
                         if (worker_iterator.findClosestUsingAbility(location, .Harvest_Gather_SCV)) |res| {
                             actions.build(res.unit.tag, .Barracks, location, false);
                         }
@@ -437,8 +438,17 @@ const ExampleBot = struct {
         }
     }
 
-    fn handleDeadUnits(self: *ExampleBot, dead_units: []Unit) void {
+    fn handleDeadUnits(self: *ExampleBot, dead_units: []Unit, disappeared_units: []Unit) void {
         for (dead_units) |unit| {
+            if (mem.indexOfScalar(u64, self.main_force.items, unit.tag)) |index| {
+                _ = self.main_force.swapRemove(index);
+            }
+            if (mem.indexOfScalar(u64, self.new_army.items, unit.tag)) |index| {
+                _ = self.new_army.swapRemove(index);
+            }
+        }
+
+        for (disappeared_units) |unit| {
             if (mem.indexOfScalar(u64, self.main_force.items, unit.tag)) |index| {
                 _ = self.main_force.swapRemove(index);
             }
@@ -772,7 +782,7 @@ const ExampleBot = struct {
         if (bot.time < 240) useMules(own_units, bot.mineral_patches, actions);
         produceUnits(bot, own_units, actions);
 
-        self.handleDeadUnits(bot.dead_units);
+        self.handleDeadUnits(bot.dead_units, bot.disappeared_units);
         self.handleNewArmy(bot);
         self.controlArmy(bot, game_info, actions);
     }
@@ -798,5 +808,5 @@ pub fn main() !void {
     var my_bot = try ExampleBot.init(gpa);
     defer my_bot.deinit();
 
-    try zig_sc2.run(&my_bot, 2, gpa, .{});
+    try zig_sc2.run(&my_bot, 2, gpa);
 }
