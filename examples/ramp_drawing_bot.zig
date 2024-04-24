@@ -30,13 +30,14 @@ const TestBot = struct {
             for (units) |unit| {
                 if (unit.unit_type == .CommandCenter) break :cc_calc unit.tag;
             }
-            break :cc_calc 0;
+            unreachable;
         };
 
         self.pf_scv_tag = scv_calc: {
             for (units) |unit| {
                 if (unit.unit_type == .SCV) break :scv_calc unit.tag;
             }
+            unreachable;
         };
         _ = game_info;
         _ = actions;

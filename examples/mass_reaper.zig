@@ -37,7 +37,7 @@ const MassReaper = struct {
     reaper_map: InfluenceMap = .{},
 
     pub fn init(base_allocator: mem.Allocator) !Self {
-        var buffer = try base_allocator.alloc(u8, 5 * 1024 * 1024);
+        const buffer = try base_allocator.alloc(u8, 5 * 1024 * 1024);
         return .{
             .allocator = base_allocator,
             .fba = std.heap.FixedBufferAllocator.init(buffer),

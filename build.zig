@@ -2,7 +2,7 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.Build) void {
     const compile_log = std.log.scoped(.compilation);
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -38,14 +38,14 @@ pub fn build(b: *std.build.Builder) void {
 
     compile_log.info("Building {s}\n", .{main_file});
 
-    const zig_sc2 = b.addModule("zig-sc2", .{ .source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
+    const zig_sc2 = b.addModule("zig-sc2", .{ .root_source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
     const exe = b.addExecutable(.{
         .name = bot_name,
         .root_source_file = .{ .path = main_file },
         .target = target,
         .optimize = optimize,
     });
-    exe.addModule("zig-sc2", zig_sc2);
+    exe.root_module.addImport("zig-sc2", zig_sc2);
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
