@@ -38,10 +38,10 @@ pub fn build(b: *std.Build) void {
 
     compile_log.info("Building {s}\n", .{main_file});
 
-    const zig_sc2 = b.addModule("zig-sc2", .{ .root_source_file = .{ .path = "lib/zig-sc2/src/runner.zig" } });
+    const zig_sc2 = b.addModule("zig-sc2", .{ .root_source_file = b.path("lib/zig-sc2/src/runner.zig") });
     const exe = b.addExecutable(.{
         .name = bot_name,
-        .root_source_file = .{ .path = main_file },
+        .root_source_file = b.path(main_file),
         .target = target,
         .optimize = optimize,
     });
@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     const exe_tests = b.addTest(.{
-        .root_source_file = .{ .path = main_file },
+        .root_source_file = b.path(main_file),
         .target = target,
         .optimize = optimize,
     });

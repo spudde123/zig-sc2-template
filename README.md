@@ -1,6 +1,6 @@
 # Zig-sc2-template
 
-Template for a Starcraft 2 bot for competing on [sc2ai.net](https://sc2ai.net/), written in Zig 0.12.0.
+Template for a Starcraft 2 bot for competing on [sc2ai.net](https://sc2ai.net/), written in Zig 0.13.0.
 
 ## Running
 
