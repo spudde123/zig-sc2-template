@@ -12,7 +12,7 @@ const Unit = bot_data.Unit;
 const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
 const BuffId = bot_data.BuffId;
-const Prng = std.rand.DefaultPrng;
+const Prng = std.Random.DefaultPrng;
 
 const ProtossBot = struct {
     const Self = @This();
@@ -30,7 +30,7 @@ const ProtossBot = struct {
             .allocator = base_allocator,
             .name = "ProtossBot",
             .race = .protoss,
-            .prng = std.rand.DefaultPrng.init(0),
+            .prng = Prng.init(0),
         };
     }
 
