@@ -12,6 +12,7 @@ const Unit = bot_data.Unit;
 const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
 const BuffId = bot_data.BuffId;
+const InfluenceMap = bot_data.InfluenceMap;
 const Prng = std.Random.DefaultPrng;
 
 const ProtossBot = struct {
@@ -20,6 +21,7 @@ const ProtossBot = struct {
     allocator: mem.Allocator,
     prng: Prng,
     build_step: u8 = 0,
+    expansion_list: std.ArrayList(ExpansionData),
 
     // These are mandatory
     name: []const u8,
@@ -31,11 +33,12 @@ const ProtossBot = struct {
             .name = "ProtossBot",
             .race = .protoss,
             .prng = Prng.init(0),
+            .expansion_list = std.ArrayList(ExpansionData).init(base_allocator),
         };
     }
 
     pub fn deinit(self: *Self) void {
-        _ = self;
+        self.expansion_list.deinit();
     }
 
     fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
@@ -45,8 +48,15 @@ const ProtossBot = struct {
         return point.add(p.multiply(distance));
     }
 
-    fn closerToStart(context: Point2, lhs: Point2, rhs: Point2) bool {
-        return context.distanceSquaredTo(lhs) < context.distanceSquaredTo(rhs);
+    fn closerToStart(context: void, lhs: ExpansionData, rhs: ExpansionData) bool {
+        _ = context;
+        const left_achievable = lhs.distance_from_start < std.math.floatMax(f32);
+        const right_achievable = rhs.distance_from_start < std.math.floatMax(f32);
+        if (!left_achievable and right_achievable) return false;
+        if (left_achievable and !right_achievable) return true;
+        if (lhs.base_type == .rich and rhs.base_type != .rich) return false;
+        if (lhs.base_type != .rich and rhs.base_type == .rich) return true;
+        return lhs.distance_from_start < rhs.distance_from_start;
     }
 
     fn countReady(group: []Unit, unit_id: UnitId) usize {
@@ -138,8 +148,11 @@ const ProtossBot = struct {
 
                 if (bot.minerals >= 400) {
                     var worker_iterator = unit_group.includeType(.Probe, own_units);
-                    if (worker_iterator.findClosestUsingAbility(game_info.expansion_locations[1], .Harvest_Gather_Probe)) |res| {
-                        actions.build(res.unit.tag, .Nexus, game_info.expansion_locations[1], false);
+
+                    if (worker_iterator.findClosestUsingAbility(self.expansion_list.items[1].location, .Harvest_Gather_Probe)) |res| {
+                        if (actions.findPlacement(.Nexus, self.expansion_list.items[1].location, 20)) |location| {
+                            actions.build(res.unit.tag, .Nexus, location, false);
+                        }
                     }
                 }
             },
@@ -393,16 +406,58 @@ const ProtossBot = struct {
         }
     }
 
+    const ExpansionData = struct {
+        location: Point2,
+        distance_from_start: f32,
+        base_type: bot_data.BaseType,
+    };
+
     pub fn onStart(
         self: *Self,
         bot: Bot,
         game_info: GameInfo,
         actions: *Actions,
     ) !void {
-        _ = bot;
-        _ = self;
-        _ = actions;
-        std.sort.insertion(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
+        // Example for ordering expansions based on walking distance from start location, taking normal bases before gold ones
+        var basic_map = try InfluenceMap.fromGrid(actions.temp_allocator, game_info.pathing_grid);
+
+        var results = try basic_map.runDijkstra(actions.temp_allocator, game_info.start_location, game_info.expansion_locations, false);
+        defer results.deinit();
+
+        for (game_info.expansion_locations, 0..) |location, i| {
+            const dist: f32 = d: {
+                if (results.dirs[i]) |dir| {
+                    break :d dir.cost;
+                } else {
+                    // Starting location might not give a path because start and end point were the same
+                    if (location.distanceSquaredTo(game_info.start_location) < 0.5) break :d 0;
+                    break :d std.math.floatMax(f32);
+                }
+            };
+            try self.expansion_list.append(ExpansionData{
+                .location = location,
+                .distance_from_start = dist,
+                .base_type = bot_data.getBaseType(unit_group.findClosestUnit(bot.mineral_patches, location).?.unit.unit_type),
+            });
+        }
+
+        std.sort.insertion(ExpansionData, self.expansion_list.items, {}, closerToStart);
+    }
+
+    fn drawExpansionLocations(
+        self: *Self,
+        game_info: bot_data.GameInfo,
+        actions: *bot_data.Actions,
+    ) !void {
+        for (self.expansion_list.items, 0..) |expansion, i| {
+            const z = game_info.getTerrainZ(expansion.location);
+            actions.debugTextWorld(
+                try std.fmt.allocPrint(actions.temp_allocator, "{}", .{i}),
+                bot_data.Point3.fromPoint2(expansion.location, z + 0.5),
+                .{ .r = 0, .g = 0, .b = 255 },
+                32,
+            );
+        }
     }
 
     pub fn onStep(
@@ -411,6 +466,7 @@ const ProtossBot = struct {
         game_info: GameInfo,
         actions: *Actions,
     ) !void {
+        //try self.drawExpansionLocations(game_info, actions);
         const own_units = bot.units.values();
         self.runBuild(bot, game_info, actions);
         rallyBuildings(bot, actions);

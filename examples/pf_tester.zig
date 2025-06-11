@@ -82,10 +82,10 @@ const MyBot = struct {
         const start_loc = game_info.start_location;
         const end_loc = game_info.enemy_start_locations[0];
 
-        const path = map.pathfindPath(arena, start_loc, end_loc, false).?;
+        const path = map.pathfindPath(arena, start_loc, end_loc, false).?.path;
         const middle: usize = path.len / 2;
         map.addInfluence(path[middle], 20, 50, .none);
-        const path2 = map.pathfindPath(arena, start_loc, end_loc, false).?;
+        const path2 = map.pathfindPath(arena, start_loc, end_loc, false).?.path;
 
         for (map.grid, 0..) |val, i| {
             if (val > 1 and val < std.math.floatMax(f32)) {
