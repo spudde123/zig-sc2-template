@@ -146,6 +146,22 @@ const TestBot = struct {
         drawRamps(game_info, actions);
         debugTest(game_info, actions);
         drawClimbablePoints(game_info, actions);
+        drawExpansionLocations(game_info, actions);
+    }
+
+    fn drawExpansionLocations(
+        game_info: bot_data.GameInfo,
+        actions: *bot_data.Actions,
+    ) void {
+        for (game_info.expansion_locations) |expansion| {
+            const z = game_info.getTerrainZ(expansion);
+            actions.debugTextWorld(
+                "x",
+                bot_data.Point3.fromPoint2(expansion, z + 0.5),
+                .{ .r = 0, .g = 0, .b = 255 },
+                32,
+            );
+        }
     }
 
     fn drawRamps(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
