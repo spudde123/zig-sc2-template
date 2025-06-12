@@ -497,7 +497,8 @@ const MassReaper = struct {
 
     fn moveToSafety(self: *Self, game_info: GameInfo, actions: *Actions, unit: Unit, allocator: mem.Allocator) void {
         const safe_spot = self.reaper_map.findClosestSafeSpot(unit.position, 15) orelse game_info.start_location;
-        if (self.reaper_map.pathfindDirection(allocator, unit.position, safe_spot, false)) |dir| {
+        const pf_res = self.reaper_map.pathfindDirection(allocator, unit.position, safe_spot, false) catch null;
+        if (pf_res) |dir| {
             actions.moveToPosition(unit.tag, dir.next_point, false);
         } else {
             actions.moveToPosition(unit.tag, game_info.start_location, false);
@@ -522,7 +523,8 @@ const MassReaper = struct {
             const valid_pos = self.reaper_map.validateEndPoint(unit.position) orelse continue;
 
             if (unit.health / unit.health_max < heal_at_less_than) {
-                if (self.reaper_map.pathfindDirection(fb, valid_pos, heal_spot, false)) |dir| {
+                const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, heal_spot, false) catch null;
+                if (pf_res) |dir| {
                     actions.moveToPosition(unit.tag, dir.next_point, false);
                 } else {
                     actions.moveToPosition(unit.tag, game_info.start_location, false);
@@ -575,7 +577,8 @@ const MassReaper = struct {
             if (unit.position.distanceSquaredTo(attack_target) > 5 * 5) {
                 // Only do pathfinding if close enemies exist
                 if (enemy_iterator.exists() or structure_iterator.exists()) {
-                    if (self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, false)) |pf| {
+                    const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, false) catch null;
+                    if (pf_res) |pf| {
                         actions.moveToPosition(unit.tag, pf.next_point, false);
                         continue;
                     }

@@ -136,7 +136,7 @@ const TestBot = struct {
             map.addInfluence(main_base_ramp.top_center.towards(game_info.start_location, 5), 10, 15, .none);
             defer map.deinit(self.allocator);
 
-            const pf_res = map.pathfindDirection(self.allocator, unit.position, enemy_ramp.top_center, false);
+            const pf_res = try map.pathfindDirection(self.allocator, unit.position, enemy_ramp.top_center, false);
             if (pf_res) |res| {
                 actions.moveToPosition(unit.tag, res.next_point, false);
             }
