@@ -82,3 +82,12 @@ pub fn main() !void {
 
     try zig_sc2.run(&my_bot, 2, gpa);
 }
+
+test "bot_init" {
+    var my_bot = try MyBot.init(std.testing.allocator);
+    defer my_bot.deinit();
+
+    try std.testing.expectEqualStrings("MyBot", my_bot.name);
+    try std.testing.expect(my_bot.race == .terran);
+    try zig_sc2.run(&my_bot, 2, std.testing.allocator);
+}

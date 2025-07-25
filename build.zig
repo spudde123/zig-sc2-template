@@ -38,14 +38,17 @@ pub fn build(b: *std.Build) void {
 
     compile_log.info("Building {s}\n", .{main_file});
 
-    const zig_sc2 = b.addModule("zig-sc2", .{ .root_source_file = b.path("lib/zig-sc2/src/runner.zig") });
+    const zig_sc2 = b.dependency("zig-sc2", .{
+        .target = target,
+        .optimize = optimize,
+    });
     const exe = b.addExecutable(.{
         .name = bot_name,
         .root_source_file = b.path(main_file),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("zig-sc2", zig_sc2);
+    exe.root_module.addImport("zig-sc2", zig_sc2.module("zig-sc2"));
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -63,7 +66,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
+    exe_tests.root_module.addImport("zig-sc2", zig_sc2.module("zig-sc2"));
+    const run_exe_tests = b.addRunArtifact(exe_tests);
+    const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&run_exe_tests.step);
 }

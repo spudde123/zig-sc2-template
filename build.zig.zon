@@ -1,0 +1,19 @@
+.{
+    .name = .zig_sc2_template,
+    .fingerprint = 0x9d8568346658d4be,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.14.1",
+    .dependencies = .{
+        .@"zig-sc2" = .{ .path = "lib/zig-sc2" },
+    },
+    .paths = .{
+        "src",
+        "examples",
+        "lib",
+        "replays",
+        "config",
+        "ladder_build.py",
+        "build.zig",
+        "build.zig.zon",
+    },
+}
