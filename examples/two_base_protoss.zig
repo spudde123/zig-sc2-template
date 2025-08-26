@@ -33,12 +33,12 @@ const ProtossBot = struct {
             .name = "ProtossBot",
             .race = .protoss,
             .prng = Prng.init(0),
-            .expansion_list = std.ArrayList(ExpansionData).init(base_allocator),
+            .expansion_list = .empty,
         };
     }
 
     pub fn deinit(self: *Self) void {
-        self.expansion_list.deinit();
+        self.expansion_list.deinit(self.allocator);
     }
 
     fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
@@ -434,7 +434,7 @@ const ProtossBot = struct {
                     break :d std.math.floatMax(f32);
                 }
             };
-            try self.expansion_list.append(ExpansionData{
+            try self.expansion_list.append(self.allocator, ExpansionData{
                 .location = location,
                 .distance_from_start = dist,
                 .base_type = bot_data.getBaseType(unit_group.findClosestUnit(bot.mineral_patches, location).?.unit.unit_type),

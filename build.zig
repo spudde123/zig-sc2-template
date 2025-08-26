@@ -42,11 +42,14 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const exe = b.addExecutable(.{
-        .name = bot_name,
+    const root_module = b.createModule(.{
         .root_source_file = b.path(main_file),
         .target = target,
         .optimize = optimize,
+    });
+    const exe = b.addExecutable(.{
+        .name = bot_name,
+        .root_module = root_module,
     });
     exe.root_module.addImport("zig-sc2", zig_sc2.module("zig-sc2"));
     b.installArtifact(exe);
@@ -62,9 +65,7 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     const exe_tests = b.addTest(.{
-        .root_source_file = b.path(main_file),
-        .target = target,
-        .optimize = optimize,
+        .root_module = root_module,
     });
     exe_tests.root_module.addImport("zig-sc2", zig_sc2.module("zig-sc2"));
     const run_exe_tests = b.addRunArtifact(exe_tests);

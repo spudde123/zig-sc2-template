@@ -45,8 +45,8 @@ const ExampleBot = struct {
     }
 
     pub fn deinit(self: *ExampleBot) void {
-        self.main_force.deinit();
-        self.new_army.deinit();
+        self.main_force.deinit(self.allocator);
+        self.new_army.deinit(self.allocator);
     }
 
     pub fn onStart(
@@ -430,9 +430,9 @@ const ExampleBot = struct {
             const new_unit = bot.units.get(new_unit_tag) orelse continue;
             if (mem.indexOfScalar(UnitId, &army_types, new_unit.unit_type)) |_| {
                 if (self.army_state == .attack) {
-                    self.new_army.append(new_unit_tag) catch continue;
+                    self.new_army.append(self.allocator, new_unit_tag) catch continue;
                 } else {
-                    self.main_force.append(new_unit_tag) catch continue;
+                    self.main_force.append(self.allocator, new_unit_tag) catch continue;
                 }
             }
         }
@@ -531,7 +531,7 @@ const ExampleBot = struct {
                 continue;
             };
             if (unit.position.distanceSquaredTo(army_center) < 125) {
-                self.main_force.append(unit_tag) catch {
+                self.main_force.append(self.allocator, unit_tag) catch {
                     i += 1;
                     continue;
                 };
@@ -683,7 +683,7 @@ const ExampleBot = struct {
             .attack => {
                 if (self.main_force.items.len == 0) {
                     self.army_state = .defend;
-                    self.main_force.appendSlice(self.new_army.items) catch {};
+                    self.main_force.appendSlice(self.allocator, self.new_army.items) catch {};
                     self.new_army.clearRetainingCapacity();
                     return;
                 }
@@ -696,7 +696,7 @@ const ExampleBot = struct {
                 }
 
                 if (bot.visibility.getValue(game_info.enemy_start_locations[0]) == 2 and enemy_structures_visible == 0) {
-                    self.main_force.appendSlice(self.new_army.items) catch {};
+                    self.main_force.appendSlice(self.allocator, self.new_army.items) catch {};
                     self.new_army.clearRetainingCapacity();
                     self.army_state = .search;
                     return;
