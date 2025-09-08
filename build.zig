@@ -23,12 +23,12 @@ pub fn build(b: *std.Build) void {
 
     if (b.option([]const u8, "example", "Example name")) |example_name| {
         const file_to_test = std.fmt.bufPrint(&buf, "examples/{s}.zig", .{example_name}) catch {
-            std.log.err("Invalid example\n", .{});
+            compile_log.err("Invalid example", .{});
             return;
         };
 
         const file = fs.cwd().openFile(file_to_test, .{}) catch {
-            std.log.err("Can't find example {s}\n", .{example_name});
+            compile_log.err("Can't find example {s}", .{example_name});
             return;
         };
         defer file.close();
@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) void {
         bot_name = example_name;
     }
 
-    compile_log.info("Building {s}\n", .{main_file});
+    compile_log.info("Building {s}", .{main_file});
 
     const zig_sc2 = b.dependency("zig-sc2", .{
         .target = target,
