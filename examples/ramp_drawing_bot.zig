@@ -12,10 +12,7 @@ const TestBot = struct {
     name: []const u8,
     race: bot_data.Race,
     allocator: mem.Allocator,
-
     locations_expanded_to: usize = 0,
-    countdown_start: usize = 0,
-    countdown_started: bool = false,
     first_cc_tag: u64 = 0,
     pf_scv_tag: u64 = 0,
 
@@ -98,7 +95,7 @@ const TestBot = struct {
             current_minerals -= 150;
         }
 
-        if (current_minerals > 400 and !self.countdown_started) {
+        if (current_minerals > 400) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
             actions.build(
                 closest_scv.tag,
@@ -107,7 +104,7 @@ const TestBot = struct {
                 false,
             );
             self.locations_expanded_to += 1;
-            self.locations_expanded_to = @mod(self.locations_expanded_to, game_info.expansion_locations.len);
+            self.locations_expanded_to %= game_info.expansion_locations.len;
             current_minerals -= 400;
         }
 
