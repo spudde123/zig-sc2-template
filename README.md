@@ -50,11 +50,15 @@ locally you can change what the program does through command line parameters:
     `macro`, `air`.
 - --RealTime
     - Play in real time instead of step mode.
-- --Human
+- --Human terran
     - Play against your bot yourself. Two windows will open up, one for you and one
     for the bot.
 - --GamePort
     - Decide the port your game is using locally to communicate with the program.
+  --Proton /path/to/Proton
+    - On Linux you can run the game with Proton. Set the path to the
+  --SteamCompatDataPath /wineprefix/path/
+    - Required by Proton
 
 ## Status
 
