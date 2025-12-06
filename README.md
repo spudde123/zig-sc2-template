@@ -56,7 +56,7 @@ locally you can change what the program does through command line parameters:
 - --GamePort
     - Decide the port your game is using locally to communicate with the program.
 - --Proton /path/to/Proton
-    - On Linux you can run the game with Proton. Set the path to the
+    - On Linux you can run the game with Proton. Set the path to the proton executable
 - --SteamCompatDataPath /wineprefix/path/
     - Required by Proton
 
