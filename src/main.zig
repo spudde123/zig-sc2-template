@@ -73,21 +73,26 @@ const MyBot = struct {
 };
 
 pub fn main() !void {
-    var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa_instance = std.heap.DebugAllocator(.{}).init;
     const gpa = gpa_instance.allocator();
     defer _ = gpa_instance.deinit();
 
     var my_bot = try MyBot.init(gpa);
     defer my_bot.deinit();
 
-    try zig_sc2.run(&my_bot, 2, gpa);
+    _ = try zig_sc2.run(&my_bot, 2, gpa);
 }
 
 test "bot_init" {
+    // Run by setting the SC2 env var if it's in a non standard path
     var my_bot = try MyBot.init(std.testing.allocator);
     defer my_bot.deinit();
 
     try std.testing.expectEqualStrings("MyBot", my_bot.name);
     try std.testing.expect(my_bot.race == .terran);
-    try zig_sc2.run(&my_bot, 2, std.testing.allocator);
+    try std.testing.expect(.defeat == try zig_sc2.run(
+        &my_bot,
+        2,
+        std.testing.allocator,
+    ));
 }

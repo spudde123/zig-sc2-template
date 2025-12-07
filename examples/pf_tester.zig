@@ -143,5 +143,5 @@ pub fn main() !void {
     var my_bot = try MyBot.init(gpa);
     defer my_bot.deinit();
 
-    try zig_sc2.run(&my_bot, 2, gpa);
+    _ = try zig_sc2.run(&my_bot, 2, gpa);
 }
