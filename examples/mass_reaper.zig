@@ -626,13 +626,16 @@ const MassReaper = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
-    const gpa = gpa_instance.allocator();
-    defer _ = gpa_instance.deinit();
-
-    var my_bot = try MassReaper.init(gpa);
+pub fn main(init: std.process.Init) !void {
+    var my_bot = try MassReaper.init(init.gpa);
     defer my_bot.deinit();
 
-    _ = try zig_sc2.run(&my_bot, 2, gpa);
+    _ = try zig_sc2.run(&my_bot, .{
+        .step_count = 2,
+        .gpa = init.gpa,
+        .arena = init.arena,
+        .env_map = init.environ_map,
+        .args = init.minimal.args,
+        .io = init.io,
+    });
 }

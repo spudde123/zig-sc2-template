@@ -72,27 +72,39 @@ const MyBot = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa_instance = std.heap.DebugAllocator(.{}).init;
-    const gpa = gpa_instance.allocator();
-    defer _ = gpa_instance.deinit();
-
-    var my_bot = try MyBot.init(gpa);
+pub fn main(init: std.process.Init) !void {
+    var my_bot = try MyBot.init(init.gpa);
     defer my_bot.deinit();
-
-    _ = try zig_sc2.run(&my_bot, 2, gpa);
+    _ = try zig_sc2.run(&my_bot, .{
+        .step_count = 2,
+        .gpa = init.gpa,
+        .arena = init.arena,
+        .env_map = init.environ_map,
+        .args = init.minimal.args,
+        .io = init.io,
+    });
 }
 
 test "bot_init" {
     // Run by setting the SC2 env var if it's in a non standard path
     var my_bot = try MyBot.init(std.testing.allocator);
     defer my_bot.deinit();
+    var arena_instance = std.heap.ArenaAllocator.init(std.testing.allocator);
+    const arena = arena_instance.allocator();
+    defer arena_instance.deinit();
 
     try std.testing.expectEqualStrings("MyBot", my_bot.name);
     try std.testing.expect(my_bot.race == .terran);
+    var env_map = try std.testing.environ.createMap(arena);
     try std.testing.expect(.defeat == try zig_sc2.run(
         &my_bot,
-        2,
-        std.testing.allocator,
+        .{
+            .step_count = 2,
+            .gpa = std.testing.allocator,
+            .arena = &arena_instance,
+            .env_map = &env_map,
+            .args = undefined,
+            .io = std.testing.io,
+        },
     ));
 }

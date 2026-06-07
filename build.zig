@@ -1,5 +1,5 @@
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 
 pub fn build(b: *std.Build) void {
@@ -21,17 +21,20 @@ pub fn build(b: *std.Build) void {
     var bot_name: []const u8 = "zig-bot";
     var buf: [256]u8 = undefined;
 
+    var threaded = Io.Threaded.init_single_threaded;
+    const io = threaded.io();
+
     if (b.option([]const u8, "example", "Example name")) |example_name| {
         const file_to_test = std.fmt.bufPrint(&buf, "examples/{s}.zig", .{example_name}) catch {
             compile_log.err("Invalid example", .{});
             return;
         };
 
-        const file = fs.cwd().openFile(file_to_test, .{}) catch {
+        const file = Io.Dir.cwd().openFile(io, file_to_test, .{}) catch {
             compile_log.err("Can't find example {s}", .{example_name});
             return;
         };
-        defer file.close();
+        defer file.close(io);
         main_file = file_to_test;
         bot_name = example_name;
     }

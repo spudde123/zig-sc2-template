@@ -21,15 +21,17 @@ const MyBot = struct {
 
     allocator: mem.Allocator,
     arena: std.heap.ArenaAllocator,
+    io: std.Io,
 
     // These are mandatory
     name: []const u8,
     race: bot_data.Race,
 
-    pub fn init(base_allocator: mem.Allocator) !Self {
+    pub fn init(base_allocator: mem.Allocator, io: std.Io) !Self {
         return .{
             .allocator = base_allocator,
             .arena = std.heap.ArenaAllocator.init(base_allocator),
+            .io = io,
             .name = "MyBot",
             .race = .terran,
         };
@@ -55,16 +57,14 @@ const MyBot = struct {
         const end_loc = game_info.enemy_start_locations[0];
         const times = 500;
 
-        var timer = time.Timer.start() catch unreachable;
-        _ = timer.lap();
+        const start = std.Io.Timestamp.now(self.io, .awake);
 
         for (0..times) |_| {
             _ = try map.pathfindDirection(arena, start_loc, end_loc, false);
         }
 
-        const pf_time = timer.lap();
-        const pf_time_us: f64 = @as(f64, @floatFromInt(pf_time)) / (1E3 * times);
-        std.debug.print("PF time avg: {}us\n", .{pf_time_us});
+        const elapsed = start.untilNow(self.io, .awake);
+        std.debug.print("PF time avg: {}us\n", .{@as(f64, @floatFromInt(elapsed.toMicroseconds())) / @as(f64, @floatFromInt(times))});
     }
 
     pub fn onStep(
@@ -135,13 +135,16 @@ const MyBot = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
-    const gpa = gpa_instance.allocator();
-    defer _ = gpa_instance.deinit();
-
-    var my_bot = try MyBot.init(gpa);
+pub fn main(init: std.process.Init) !void {
+    var my_bot = try MyBot.init(init.gpa, init.io);
     defer my_bot.deinit();
 
-    _ = try zig_sc2.run(&my_bot, 2, gpa);
+    _ = try zig_sc2.run(&my_bot, .{
+        .step_count = 2,
+        .gpa = init.gpa,
+        .arena = init.arena,
+        .env_map = init.environ_map,
+        .args = init.minimal.args,
+        .io = init.io,
+    });
 }
