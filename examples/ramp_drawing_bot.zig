@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const zig_sc2 = @import("zig-sc2");
+const BotContext = zig_sc2.BotContext;
 const bot_data = zig_sc2.bot_data;
 const unit_group = bot_data.unit_group;
 const InfluenceMap = bot_data.InfluenceMap;
@@ -18,11 +19,9 @@ const TestBot = struct {
 
     pub fn onStart(
         self: *Self,
-        bot: bot_data.Bot,
-        game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions,
+        ctx: BotContext,
     ) !void {
-        const units = bot.units.values();
+        const units = ctx.bot.units.values();
         self.first_cc_tag = cc_calc: {
             for (units) |unit| {
                 if (unit.unit_type == .CommandCenter) break :cc_calc unit.tag;
@@ -36,35 +35,31 @@ const TestBot = struct {
             }
             unreachable;
         };
-        _ = game_info;
-        _ = actions;
     }
 
     pub fn onStep(
         self: *Self,
-        bot: bot_data.Bot,
-        game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions,
+        ctx: BotContext,
     ) !void {
-        const units = bot.units.values();
+        const units = ctx.bot.units.values();
 
-        const maybe_first_cc = bot.units.get(self.first_cc_tag);
+        const maybe_first_cc = ctx.bot.units.get(self.first_cc_tag);
         if (maybe_first_cc == null) {
-            actions.leaveGame();
+            ctx.actions.leaveGame();
             return;
         }
         const first_cc = maybe_first_cc.?;
-        const main_base_ramp = game_info.getMainBaseRamp();
+        const main_base_ramp = ctx.game_info.getMainBaseRamp();
 
-        var current_minerals = bot.minerals;
-        if (bot.minerals > 50 and first_cc.isIdle()) {
-            actions.train(self.first_cc_tag, .SCV, false);
+        var current_minerals = ctx.bot.minerals;
+        if (ctx.bot.minerals > 50 and first_cc.isIdle()) {
+            ctx.actions.train(self.first_cc_tag, .SCV, false);
             current_minerals -= 50;
         }
 
         if (current_minerals > 100 and unit_group.amountOfType(units, .SupplyDepot) == 0) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            actions.build(
+            ctx.actions.build(
                 closest_scv.tag,
                 .SupplyDepot,
                 main_base_ramp.depot_first.?,
@@ -75,7 +70,7 @@ const TestBot = struct {
 
         if (current_minerals > 100 and unit_group.amountOfType(units, .SupplyDepot) == 1) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            actions.build(
+            ctx.actions.build(
                 closest_scv.tag,
                 .SupplyDepot,
                 main_base_ramp.depot_second.?,
@@ -86,7 +81,7 @@ const TestBot = struct {
 
         if (current_minerals > 150 and unit_group.amountOfType(units, .SupplyDepot) == 2) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            actions.build(
+            ctx.actions.build(
                 closest_scv.tag,
                 .Barracks,
                 main_base_ramp.barracks_middle.?,
@@ -97,14 +92,14 @@ const TestBot = struct {
 
         if (current_minerals > 400) {
             const closest_scv = findClosestCollectingUnit(units, first_cc.position);
-            actions.build(
+            ctx.actions.build(
                 closest_scv.tag,
                 .CommandCenter,
-                game_info.expansion_locations[self.locations_expanded_to],
+                ctx.game_info.expansion_locations[self.locations_expanded_to],
                 false,
             );
             self.locations_expanded_to += 1;
-            self.locations_expanded_to %= game_info.expansion_locations.len;
+            self.locations_expanded_to %= ctx.game_info.expansion_locations.len;
             current_minerals -= 400;
         }
 
@@ -114,45 +109,44 @@ const TestBot = struct {
         if (unit_group.amountOfType(units, .Barracks) > 0) {
             for (units) |unit| {
                 if (unit.build_progress < 1 or unit.unit_type != .SupplyDepot) continue;
-                actions.useAbility(unit.tag, .Morph_SupplyDepot_Lower, false);
+                ctx.actions.useAbility(unit.tag, .Morph_SupplyDepot_Lower, false);
             }
         }
 
         for (units) |unit| {
             if (unit.unit_type != .SCV or unit.orders.len > 0) continue;
-            const closest_mineral_info = unit_group.findClosestUnit(bot.mineral_patches, first_cc.position).?;
+            const closest_mineral_info = unit_group.findClosestUnit(ctx.bot.mineral_patches, first_cc.position).?;
             const closest_mineral_tag = closest_mineral_info.unit.tag;
-            actions.useAbilityOnUnit(unit.tag, .Smart, closest_mineral_tag, false);
+            ctx.actions.useAbilityOnUnit(unit.tag, .Smart, closest_mineral_tag, false);
         }
 
         for (units) |unit| {
             if (unit.tag != self.pf_scv_tag) continue;
 
-            const enemy_ramp = game_info.getEnemyMainBaseRamp();
-            var map = InfluenceMap.fromGrid(self.allocator, game_info.pathing_grid) catch break;
-            map.addInfluence(main_base_ramp.top_center.towards(game_info.start_location, 5), 10, 15, .none);
+            const enemy_ramp = ctx.game_info.getEnemyMainBaseRamp();
+            var map = InfluenceMap.fromGrid(self.allocator, ctx.game_info.pathing_grid, ctx.game_info.terrain_height) catch break;
+            map.addInfluence(main_base_ramp.top_center.towards(ctx.game_info.start_location, 5), 10, 15, .none);
             defer map.deinit(self.allocator);
 
-            const pf_res = try map.pathfindDirection(self.allocator, unit.position, enemy_ramp.top_center, false);
+            const pf_res = try map.pathfindDirection(self.allocator, unit.position, enemy_ramp.top_center, .{});
             if (pf_res) |res| {
-                actions.moveToPosition(unit.tag, res.next_point, false);
+                ctx.actions.moveToPosition(unit.tag, res.next_point, false);
             }
             break;
         }
 
-        drawRamps(game_info, actions);
-        debugTest(game_info, actions);
-        drawClimbablePoints(game_info, actions);
-        drawExpansionLocations(game_info, actions);
+        drawRamps(ctx);
+        debugTest(ctx);
+        drawClimbablePoints(ctx);
+        drawExpansionLocations(ctx);
     }
 
     fn drawExpansionLocations(
-        game_info: bot_data.GameInfo,
-        actions: *bot_data.Actions,
+        ctx: BotContext,
     ) void {
-        for (game_info.expansion_locations) |expansion| {
-            const z = game_info.getTerrainZ(expansion);
-            actions.debugTextWorld(
+        for (ctx.game_info.expansion_locations) |expansion| {
+            const z = ctx.game_info.getTerrainZ(expansion);
+            ctx.actions.debugTextWorld(
                 "x",
                 bot_data.Point3.fromPoint2(expansion, z + 0.5),
                 .{ .r = 0, .g = 0, .b = 255 },
@@ -161,13 +155,13 @@ const TestBot = struct {
         }
     }
 
-    fn drawRamps(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
-        for (game_info.ramps) |ramp| {
+    fn drawRamps(ctx: BotContext) void {
+        for (ctx.game_info.ramps) |ramp| {
             for (ramp.points) |point| {
                 const fx = @as(f32, @floatFromInt(point.x));
                 const fy = @as(f32, @floatFromInt(point.y));
-                const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
-                actions.debugTextWorld(
+                const fz = ctx.game_info.getTerrainZ(.{ .x = fx, .y = fy });
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = fx + 0.5, .y = fy + 0.5, .z = fz },
                     .{ .r = 0, .g = 255, .b = 0 },
@@ -175,29 +169,29 @@ const TestBot = struct {
                 );
             }
 
-            const z = game_info.getTerrainZ(ramp.top_center);
+            const z = ctx.game_info.getTerrainZ(ramp.top_center);
 
             if (ramp.depot_first) |depot_first| {
                 const draw_loc = depot_first.add(.{ .x = 0.5, .y = 0.5 });
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x - 1, .y = draw_loc.y, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x, .y = draw_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x, .y = draw_loc.y, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
@@ -207,25 +201,25 @@ const TestBot = struct {
 
             if (ramp.depot_second) |depot_second| {
                 const draw_loc = depot_second.add(.{ .x = 0.5, .y = 0.5 });
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x - 1, .y = draw_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x - 1, .y = draw_loc.y, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x, .y = draw_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = draw_loc.x, .y = draw_loc.y, .z = z },
                     .{ .r = 0, .g = 0, .b = 255 },
@@ -234,55 +228,55 @@ const TestBot = struct {
             }
 
             if (ramp.barracks_middle) |rax_loc| {
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x - 1, .y = rax_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x - 1, .y = rax_loc.y, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x - 1, .y = rax_loc.y + 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x, .y = rax_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x, .y = rax_loc.y, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x, .y = rax_loc.y + 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x + 1, .y = rax_loc.y - 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x + 1, .y = rax_loc.y, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
                     16,
                 );
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = rax_loc.x + 1, .y = rax_loc.y + 1, .z = z },
                     .{ .r = 0, .g = 255, .b = 255 },
@@ -291,12 +285,12 @@ const TestBot = struct {
             }
         }
 
-        for (game_info.vision_blockers) |vb| {
+        for (ctx.game_info.vision_blockers) |vb| {
             for (vb.points) |point| {
                 const fx = @as(f32, @floatFromInt(point.x));
                 const fy = @as(f32, @floatFromInt(point.y));
-                const fz = game_info.getTerrainZ(.{ .x = fx, .y = fy });
-                actions.debugTextWorld(
+                const fz = ctx.game_info.getTerrainZ(.{ .x = fx, .y = fy });
+                ctx.actions.debugTextWorld(
                     "o",
                     .{ .x = fx + 0.5, .y = fy + 0.5, .z = fz },
                     .{ .r = 255, .g = 0, .b = 0 },
@@ -306,12 +300,12 @@ const TestBot = struct {
         }
     }
 
-    fn debugTest(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
-        const main_base_ramp = game_info.getMainBaseRamp();
-        const z = game_info.getTerrainZ(main_base_ramp.top_center);
+    fn debugTest(ctx: BotContext) void {
+        const main_base_ramp = ctx.game_info.getMainBaseRamp();
+        const z = ctx.game_info.getTerrainZ(main_base_ramp.top_center);
         const line_start = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -10);
-        const line_end = game_info.start_location;
-        actions.debugLine(
+        const line_end = ctx.game_info.start_location;
+        ctx.actions.debugLine(
             bot_data.Point3.fromPoint2(line_start, z + 5),
             bot_data.Point3.fromPoint2(line_end, z + 5),
             .{ .r = 255, .g = 0, .b = 0 },
@@ -319,25 +313,25 @@ const TestBot = struct {
 
         const box_start = line_start.add(.{ .x = 5, .y = 5 });
         const box_end = box_start.add(.{ .x = 10, .y = 10 });
-        actions.debugBox(
+        ctx.actions.debugBox(
             bot_data.Point3.fromPoint2(box_start, z + 2),
             bot_data.Point3.fromPoint2(box_end, z + 12),
             .{ .r = 0, .g = 255, .b = 0 },
         );
 
         const sphere_pos = box_end.add(.{ .x = 5, .y = 5 });
-        actions.debugSphere(
+        ctx.actions.debugSphere(
             bot_data.Point3.fromPoint2(sphere_pos, z + 5),
             4,
             .{ .r = 0, .g = 0, .b = 255 },
         );
     }
 
-    fn drawClimbablePoints(game_info: bot_data.GameInfo, actions: *bot_data.Actions) void {
-        for (game_info.climbable_points) |index| {
-            const point = game_info.pathing_grid.indexToPoint(index).add(.{ .x = 0.5, .y = 0.5 });
-            const z = game_info.getTerrainZ(point);
-            actions.debugTextWorld(
+    fn drawClimbablePoints(ctx: BotContext) void {
+        for (ctx.game_info.climbable_points) |index| {
+            const point = ctx.game_info.pathing_grid.indexToPoint(index).add(.{ .x = 0.5, .y = 0.5 });
+            const z = ctx.game_info.getTerrainZ(point);
+            ctx.actions.debugTextWorld(
                 "x",
                 bot_data.Point3.fromPoint2(point, z),
                 .{ .r = 0, .g = 255, .b = 0 },
@@ -348,14 +342,12 @@ const TestBot = struct {
 
     pub fn onResult(
         self: *Self,
-        bot: bot_data.Bot,
-        game_info: bot_data.GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
-        _ = result;
         _ = self;
+        _ = ctx;
+        _ = result;
     }
 
     fn findClosestCollectingUnit(units: []bot_data.Unit, pos: Point2) bot_data.Unit {

@@ -3,6 +3,7 @@ const mem = std.mem;
 const math = std.math;
 
 const zig_sc2 = @import("zig-sc2");
+const BotContext = zig_sc2.BotContext;
 const bot_data = zig_sc2.bot_data;
 const Actions = bot_data.Actions;
 const GameInfo = bot_data.GameInfo;
@@ -57,14 +58,10 @@ const MassReaper = struct {
 
     pub fn onStart(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        _ = bot;
-        _ = actions;
-        std.sort.insertion(Point2, game_info.expansion_locations, game_info.start_location, closerToStart);
-        self.reaper_map = try InfluenceMap.fromGrid(self.allocator, game_info.reaper_grid);
+        std.sort.insertion(Point2, ctx.game_info.expansion_locations, ctx.game_info.start_location, closerToStart);
+        self.reaper_map = try InfluenceMap.fromGrid(self.allocator, ctx.game_info.reaper_grid, ctx.game_info.terrain_height);
     }
 
     fn countReady(group: []Unit, unit_id: UnitId) usize {
@@ -95,7 +92,7 @@ const MassReaper = struct {
         return closest;
     }
 
-    fn runBuild(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn runBuild(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
 
@@ -274,7 +271,7 @@ const MassReaper = struct {
         }
     }
 
-    fn produceUnits(bot: Bot, structures: []Unit, actions: *Actions) void {
+    fn produceUnits(bot: *const Bot, structures: []Unit, actions: *Actions) void {
         const reactors = [_]UnitId{ .BarracksReactor, .FactoryReactor, .StarportReactor };
 
         for (structures) |structure| {
@@ -328,7 +325,7 @@ const MassReaper = struct {
         }
     }
 
-    fn rallyBuildings(bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn rallyBuildings(bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const main_base_ramp = game_info.getMainBaseRamp();
         for (bot.units_created) |new_unit_tag| {
             const unit = bot.units.get(new_unit_tag).?;
@@ -346,7 +343,7 @@ const MassReaper = struct {
         }
     }
 
-    fn moveWorkersToGas(bot: Bot, actions: *Actions) void {
+    fn moveWorkersToGas(bot: *const Bot, actions: *Actions) void {
         const own_units = bot.units.values();
         for (own_units) |unit| {
             if (unit.unit_type != .Refinery or unit.build_progress < 1) continue;
@@ -377,7 +374,7 @@ const MassReaper = struct {
         }
     }
 
-    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         const closest_mineral_res = unit_group.findClosestUnit(minerals, game_info.start_location) orelse return;
         const closest_mineral_tag = closest_mineral_res.unit.tag;
         for (units) |unit| {
@@ -386,7 +383,7 @@ const MassReaper = struct {
         }
     }
 
-    fn sendScout(units: []Unit, dead_units: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn sendScout(units: []Unit, dead_units: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         const ScoutState = struct {
             var scout_sent: bool = false;
             var scout_tag: u64 = 0;
@@ -444,7 +441,7 @@ const MassReaper = struct {
         return !unit.is_flying and unit.display_type == .visible and !unit.is_structure and good_type and close;
     }
 
-    fn updateReaperGrid(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn updateReaperGrid(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         self.reaper_map.reset(game_info.reaper_grid);
         const enemy_units = bot.enemy_units.values();
         for (enemy_units) |unit| {
@@ -460,7 +457,7 @@ const MassReaper = struct {
         self.reaper_map.addInfluenceCreep(bot.creep, 2);
     }
 
-    fn getAttackTarget(bot: Bot, game_info: GameInfo) Point2 {
+    fn getAttackTarget(bot: *const Bot, game_info: *const GameInfo) Point2 {
         if (bot.time > 300) {
             var closest_unit: ?Unit = null;
             var min_unit_dist: f32 = math.floatMax(f32);
@@ -495,9 +492,9 @@ const MassReaper = struct {
         return game_info.enemy_start_locations[0];
     }
 
-    fn moveToSafety(self: *Self, game_info: GameInfo, actions: *Actions, unit: Unit, allocator: mem.Allocator) void {
+    fn moveToSafety(self: *Self, game_info: *const GameInfo, actions: *Actions, unit: Unit, allocator: mem.Allocator) void {
         const safe_spot = self.reaper_map.findClosestSafeSpot(unit.position, 15) orelse game_info.start_location;
-        const pf_res = self.reaper_map.pathfindDirection(allocator, unit.position, safe_spot, false) catch null;
+        const pf_res = self.reaper_map.pathfindDirection(allocator, unit.position, safe_spot, .{}) catch null;
         if (pf_res) |dir| {
             actions.moveToPosition(unit.tag, dir.next_point, false);
         } else {
@@ -505,7 +502,7 @@ const MassReaper = struct {
         }
     }
 
-    fn controlArmy(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn controlArmy(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
         const heal_spot = self.reaper_map.findClosestSafeSpot(game_info.getMapCenter(), 15) orelse game_info.start_location;
@@ -523,7 +520,7 @@ const MassReaper = struct {
             const valid_pos = self.reaper_map.validateEndPoint(unit.position) orelse continue;
 
             if (unit.health / unit.health_max < heal_at_less_than) {
-                const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, heal_spot, false) catch null;
+                const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, heal_spot, .{}) catch null;
                 if (pf_res) |dir| {
                     actions.moveToPosition(unit.tag, dir.next_point, false);
                 } else {
@@ -577,7 +574,7 @@ const MassReaper = struct {
             if (unit.position.distanceSquaredTo(attack_target) > 5 * 5) {
                 // Only do pathfinding if close enemies exist
                 if (enemy_iterator.exists() or structure_iterator.exists()) {
-                    const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, false) catch null;
+                    const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, .{}) catch null;
                     if (pf_res) |pf| {
                         actions.moveToPosition(unit.tag, pf.next_point, false);
                         continue;
@@ -593,34 +590,30 @@ const MassReaper = struct {
 
     pub fn onStep(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        const own_units = bot.units.values();
-        const enemy_units = bot.enemy_units.values();
+        const own_units = ctx.bot.units.values();
+        const enemy_units = ctx.bot.enemy_units.values();
 
-        self.runBuild(bot, game_info, actions);
-        rallyBuildings(bot, game_info, actions);
-        if (bot.time > 360) sendScout(own_units, bot.dead_units, game_info, actions);
-        moveWorkersToGas(bot, actions);
-        handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
-        controlDepots(own_units, enemy_units, game_info.getMainBaseRamp(), actions);
-        useMules(own_units, bot.mineral_patches, actions);
-        produceUnits(bot, own_units, actions);
+        self.runBuild(ctx.bot, ctx.game_info, ctx.actions);
+        rallyBuildings(ctx.bot, ctx.game_info, ctx.actions);
+        if (ctx.bot.time > 360) sendScout(own_units, ctx.bot.dead_units, ctx.game_info, ctx.actions);
+        moveWorkersToGas(ctx.bot, ctx.actions);
+        handleIdleWorkers(own_units, ctx.bot.mineral_patches, ctx.game_info, ctx.actions);
+        controlDepots(own_units, enemy_units, ctx.game_info.getMainBaseRamp(), ctx.actions);
+        useMules(own_units, ctx.bot.mineral_patches, ctx.actions);
+        produceUnits(ctx.bot, own_units, ctx.actions);
 
-        self.updateReaperGrid(bot, game_info, actions);
-        self.controlArmy(bot, game_info, actions);
+        self.updateReaperGrid(ctx.bot, ctx.game_info, ctx.actions);
+        self.controlArmy(ctx.bot, ctx.game_info, ctx.actions);
     }
 
     pub fn onResult(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
+        _ = ctx;
         _ = result;
         _ = self;
     }

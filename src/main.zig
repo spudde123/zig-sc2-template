@@ -6,6 +6,7 @@ const bot_data = zig_sc2.bot_data;
 const Actions = bot_data.Actions;
 const GameInfo = bot_data.GameInfo;
 const Bot = bot_data.Bot;
+const BotContext = zig_sc2.BotContext;
 const Point2 = bot_data.Point2;
 const unit_group = bot_data.unit_group;
 const Unit = bot_data.Unit;
@@ -38,37 +39,28 @@ const MyBot = struct {
 
     pub fn onStart(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        _ = bot;
         _ = self;
-        _ = game_info;
-        actions.tagGame("example_tag");
+        ctx.actions.tagGame("example_tag");
     }
 
     pub fn onStep(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
         _ = self;
-        _ = game_info;
-        if (bot.time >= 60) actions.leaveGame();
+        if (ctx.bot.time >= 60) ctx.actions.leaveGame();
     }
 
     pub fn onResult(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
-        _ = result;
         _ = self;
+        _ = ctx;
+        _ = result;
     }
 };
 

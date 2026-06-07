@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const zig_sc2 = @import("zig-sc2");
+const BotContext = zig_sc2.BotContext;
 const bot_data = zig_sc2.bot_data;
 const Actions = bot_data.Actions;
 const GameInfo = bot_data.GameInfo;
@@ -51,15 +52,10 @@ const ExampleBot = struct {
 
     pub fn onStart(
         self: *ExampleBot,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        _ = bot;
         _ = self;
-        _ = game_info;
-
-        actions.tagGame("testing_tag");
+        ctx.actions.tagGame("testing_tag");
     }
 
     fn countReady(group: []Unit, unit_id: UnitId) usize {
@@ -90,7 +86,7 @@ const ExampleBot = struct {
         return closest;
     }
 
-    fn runBuild(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn runBuild(self: *ExampleBot, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
 
@@ -299,7 +295,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn produceUnits(bot: Bot, structures: []Unit, actions: *Actions) void {
+    fn produceUnits(bot: *const Bot, structures: []Unit, actions: *Actions) void {
         const reactors = [_]UnitId{ .BarracksReactor, .FactoryReactor, .StarportReactor };
 
         for (structures) |structure| {
@@ -359,7 +355,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn rallyBuildings(bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn rallyBuildings(bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const main_base_ramp = game_info.getMainBaseRamp();
         for (bot.units_created) |new_unit_tag| {
             const unit = bot.units.get(new_unit_tag) orelse continue;
@@ -369,7 +365,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn moveWorkersToGas(bot: Bot, actions: *Actions) void {
+    fn moveWorkersToGas(bot: *const Bot, actions: *Actions) void {
         const own_units = bot.units.values();
         for (own_units) |unit| {
             if (unit.unit_type != .Refinery or unit.build_progress < 1) continue;
@@ -400,7 +396,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         const closest_mineral_res = unit_group.findClosestUnit(minerals, game_info.start_location) orelse return;
         const closest_mineral_tag = closest_mineral_res.unit.tag;
         for (units) |unit| {
@@ -418,7 +414,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn handleNewArmy(self: *ExampleBot, bot: Bot) void {
+    fn handleNewArmy(self: *ExampleBot, bot: *const Bot) void {
         const army_types = [_]UnitId{
             .Marine,
             .SiegeTank,
@@ -463,7 +459,7 @@ const ExampleBot = struct {
         return !unit.is_structure;
     }
 
-    fn defend(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn defend(self: *ExampleBot, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const main_base_ramp = game_info.getMainBaseRamp();
         const start_location = game_info.start_location;
         const rest_point = main_base_ramp.top_center.towards(main_base_ramp.bottom_center, -4);
@@ -509,7 +505,7 @@ const ExampleBot = struct {
         return unit.cloak != .cloaked;
     }
 
-    fn attack(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn attack(self: *ExampleBot, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         var army_center: Point2 = .{};
         var unit_count = @as(f32, @floatFromInt(self.main_force.items.len));
 
@@ -642,7 +638,7 @@ const ExampleBot = struct {
 
     // Just go from expansion to expansion in some order trying to find
     // enemy buildings
-    fn search(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn search(self: *ExampleBot, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         for (self.main_force.items) |unit_tag| {
             const unit = bot.units.get(unit_tag) orelse continue;
             var queue_first = false;
@@ -662,7 +658,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn controlArmy(self: *ExampleBot, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn controlArmy(self: *ExampleBot, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
@@ -736,7 +732,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn drawPathingGrid(game_info: GameInfo, actions: *Actions) void {
+    fn drawPathingGrid(game_info: *const GameInfo, actions: *Actions) void {
         const w = game_info.pathing_grid.w;
         const h = game_info.pathing_grid.h;
         for (0..w * h) |i| {
@@ -750,7 +746,7 @@ const ExampleBot = struct {
         }
     }
 
-    fn drawPlacementGrid(game_info: GameInfo, actions: *Actions) void {
+    fn drawPlacementGrid(game_info: *const GameInfo, actions: *Actions) void {
         const w = game_info.placement_grid.w;
         const h = game_info.placement_grid.h;
         for (0..w * h) |i| {
@@ -766,35 +762,31 @@ const ExampleBot = struct {
 
     pub fn onStep(
         self: *ExampleBot,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        const own_units = bot.units.values();
-        const enemy_units = bot.enemy_units.values();
-        //drawPathingGrid(game_info, actions);
-        //drawPlacementGrid(game_info, actions);
-        self.runBuild(bot, game_info, actions);
-        rallyBuildings(bot, game_info, actions);
-        moveWorkersToGas(bot, actions);
-        handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
-        controlDepots(own_units, enemy_units, game_info.getMainBaseRamp(), actions);
-        if (bot.time < 240) useMules(own_units, bot.mineral_patches, actions);
-        produceUnits(bot, own_units, actions);
+        const own_units = ctx.bot.units.values();
+        const enemy_units = ctx.bot.enemy_units.values();
+        //drawPathingGrid(ctx.game_info, ctx.actions);
+        //drawPlacementGrid(ctx.game_info, ctx.actions);
+        self.runBuild(ctx.bot, ctx.game_info, ctx.actions);
+        rallyBuildings(ctx.bot, ctx.game_info, ctx.actions);
+        moveWorkersToGas(ctx.bot, ctx.actions);
+        handleIdleWorkers(own_units, ctx.bot.mineral_patches, ctx.game_info, ctx.actions);
+        controlDepots(own_units, enemy_units, ctx.game_info.getMainBaseRamp(), ctx.actions);
+        if (ctx.bot.time < 240) useMules(own_units, ctx.bot.mineral_patches, ctx.actions);
+        produceUnits(ctx.bot, own_units, ctx.actions);
 
-        self.handleDeadUnits(bot.dead_units, bot.disappeared_units);
-        self.handleNewArmy(bot);
-        self.controlArmy(bot, game_info, actions);
+        self.handleDeadUnits(ctx.bot.dead_units, ctx.bot.disappeared_units);
+        self.handleNewArmy(ctx.bot);
+        self.controlArmy(ctx.bot, ctx.game_info, ctx.actions);
     }
 
     pub fn onResult(
         self: *ExampleBot,
-        bot: Bot,
-        game_info: GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
+        _ = ctx;
         _ = result;
         _ = self;
     }

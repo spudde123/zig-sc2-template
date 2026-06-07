@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const zig_sc2 = @import("zig-sc2");
+const BotContext = zig_sc2.BotContext;
 const bot_data = zig_sc2.bot_data;
 const Actions = bot_data.Actions;
 const GameInfo = bot_data.GameInfo;
@@ -87,7 +88,7 @@ const ProtossBot = struct {
         return closest;
     }
 
-    fn runBuild(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn runBuild(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const main_base_ramp = game_info.getMainBaseRamp();
 
@@ -238,7 +239,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn rallyBuildings(bot: Bot, actions: *Actions) void {
+    fn rallyBuildings(bot: *const Bot, actions: *Actions) void {
         for (bot.units_created) |new_unit_tag| {
             const unit = bot.units.get(new_unit_tag).?;
             if (unit.unit_type == .Nexus) {
@@ -248,7 +249,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn doUpgrades(bot: Bot, actions: *Actions) void {
+    fn doUpgrades(bot: *const Bot, actions: *Actions) void {
         const own_units = bot.units.values();
         const warpgate_status = bot.upgradePending(.WarpGateResearch);
         for (own_units) |unit| {
@@ -268,7 +269,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn produceUnits(self: *Self, bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn produceUnits(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const ramp_top = game_info.getMainBaseRamp().top_center;
         const structures = bot.units.values();
         for (structures) |structure| {
@@ -301,7 +302,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn moveWorkersToGas(bot: Bot, actions: *Actions) void {
+    fn moveWorkersToGas(bot: *const Bot, actions: *Actions) void {
         const own_units = bot.units.values();
         for (own_units) |unit| {
             if (unit.unit_type != .Assimilator or unit.build_progress < 1) continue;
@@ -332,7 +333,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn handleIdleWorkers(units: []Unit, minerals: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         const closest_mineral_res = unit_group.findClosestUnit(minerals, game_info.start_location) orelse return;
         const closest_mineral_tag = closest_mineral_res.unit.tag;
         for (units) |unit| {
@@ -341,7 +342,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn useChronoboost(bot: Bot, actions: *Actions) void {
+    fn useChronoboost(bot: *const Bot, actions: *Actions) void {
         const units = bot.units.values();
         const warpgate_status = bot.upgradePending(.WarpGateResearch);
         for (units) |unit| {
@@ -362,7 +363,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn defend(units: []Unit, enemies: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn defend(units: []Unit, enemies: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         const closest_unit_info = unit_group.findClosestUnit(enemies, game_info.start_location);
         const ramp_top = game_info.getMainBaseRamp().top_center;
         for (units) |unit| {
@@ -383,7 +384,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn attack(units: []Unit, enemies: []Unit, game_info: GameInfo, actions: *Actions) void {
+    fn attack(units: []Unit, enemies: []Unit, game_info: *const GameInfo, actions: *Actions) void {
         _ = enemies;
         for (units) |unit| {
             switch (unit.unit_type) {
@@ -395,7 +396,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn controlArmy(bot: Bot, game_info: GameInfo, actions: *Actions) void {
+    fn controlArmy(bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
         const own_units = bot.units.values();
         const enemy_units = bot.enemy_units.values();
 
@@ -414,30 +415,28 @@ const ProtossBot = struct {
 
     pub fn onStart(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
         // Example for ordering expansions based on walking distance from start location, taking normal bases before gold ones
-        var basic_map = try InfluenceMap.fromGrid(actions.temp_allocator, game_info.pathing_grid);
+        var basic_map = try InfluenceMap.fromGrid(ctx.actions.temp_allocator, ctx.game_info.pathing_grid, ctx.game_info.terrain_height);
 
-        var results = try basic_map.runDijkstra(actions.temp_allocator, game_info.start_location, game_info.expansion_locations, false);
+        var results = try basic_map.runDijkstra(ctx.actions.temp_allocator, ctx.game_info.start_location, ctx.game_info.expansion_locations, .{});
         defer results.deinit();
 
-        for (game_info.expansion_locations, 0..) |location, i| {
+        for (ctx.game_info.expansion_locations, 0..) |location, i| {
             const dist: f32 = d: {
                 if (results.dirs[i]) |dir| {
-                    break :d dir.cost;
+                    break :d dir.path_cost;
                 } else {
                     // Starting location might not give a path because start and end point were the same
-                    if (location.distanceSquaredTo(game_info.start_location) < 0.5) break :d 0;
+                    if (location.distanceSquaredTo(ctx.game_info.start_location) < 0.5) break :d 0;
                     break :d std.math.floatMax(f32);
                 }
             };
             try self.expansion_list.append(self.allocator, ExpansionData{
                 .location = location,
                 .distance_from_start = dist,
-                .base_type = bot_data.getBaseType(unit_group.findClosestUnit(bot.mineral_patches, location).?.unit.unit_type),
+                .base_type = bot_data.getBaseType(unit_group.findClosestUnit(ctx.bot.mineral_patches, location).?.unit.unit_type),
             });
         }
 
@@ -446,7 +445,7 @@ const ProtossBot = struct {
 
     fn drawExpansionLocations(
         self: *Self,
-        game_info: bot_data.GameInfo,
+        game_info: *const bot_data.GameInfo,
         actions: *bot_data.Actions,
     ) !void {
         for (self.expansion_list.items, 0..) |expansion, i| {
@@ -462,30 +461,26 @@ const ProtossBot = struct {
 
     pub fn onStep(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        //try self.drawExpansionLocations(game_info, actions);
-        const own_units = bot.units.values();
-        self.runBuild(bot, game_info, actions);
-        rallyBuildings(bot, actions);
-        doUpgrades(bot, actions);
-        self.produceUnits(bot, game_info, actions);
-        useChronoboost(bot, actions);
-        handleIdleWorkers(own_units, bot.mineral_patches, game_info, actions);
-        moveWorkersToGas(bot, actions);
-        controlArmy(bot, game_info, actions);
+        //try self.drawExpansionLocations(ctx.game_info, ctx.actions);
+        const own_units = ctx.bot.units.values();
+        self.runBuild(ctx.bot, ctx.game_info, ctx.actions);
+        rallyBuildings(ctx.bot, ctx.actions);
+        doUpgrades(ctx.bot, ctx.actions);
+        self.produceUnits(ctx.bot, ctx.game_info, ctx.actions);
+        useChronoboost(ctx.bot, ctx.actions);
+        handleIdleWorkers(own_units, ctx.bot.mineral_patches, ctx.game_info, ctx.actions);
+        moveWorkersToGas(ctx.bot, ctx.actions);
+        controlArmy(ctx.bot, ctx.game_info, ctx.actions);
     }
 
     pub fn onResult(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
+        _ = ctx;
         _ = result;
         _ = self;
     }

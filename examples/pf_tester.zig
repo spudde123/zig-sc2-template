@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const zig_sc2 = @import("zig-sc2");
+const BotContext = zig_sc2.BotContext;
 const bot_data = zig_sc2.bot_data;
 const Actions = bot_data.Actions;
 const GameInfo = bot_data.GameInfo;
@@ -43,24 +44,20 @@ const MyBot = struct {
 
     pub fn onStart(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
         defer _ = self.arena.reset(.retain_capacity);
-        _ = actions;
-        _ = bot;
         const arena = self.arena.allocator();
-        var map = try InfluenceMap.fromGrid(arena, game_info.pathing_grid);
+        var map = try InfluenceMap.fromGrid(arena, ctx.game_info.pathing_grid, ctx.game_info.terrain_height);
 
-        const start_loc = game_info.start_location;
-        const end_loc = game_info.enemy_start_locations[0];
+        const start_loc = ctx.game_info.start_location;
+        const end_loc = ctx.game_info.enemy_start_locations[0];
         const times = 500;
 
         const start = std.Io.Timestamp.now(self.io, .awake);
 
         for (0..times) |_| {
-            _ = try map.pathfindDirection(arena, start_loc, end_loc, false);
+            _ = try map.pathfindDirection(arena, start_loc, end_loc, .{});
         }
 
         const elapsed = start.untilNow(self.io, .awake);
@@ -69,30 +66,27 @@ const MyBot = struct {
 
     pub fn onStep(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
-        actions: *Actions,
+        ctx: BotContext,
     ) !void {
-        _ = bot;
         defer _ = self.arena.reset(.retain_capacity);
 
         const arena = self.arena.allocator();
-        var map = try InfluenceMap.fromGrid(arena, game_info.pathing_grid);
+        var map = try InfluenceMap.fromGrid(arena, ctx.game_info.pathing_grid, ctx.game_info.terrain_height);
 
-        const start_loc = game_info.start_location;
-        const end_loc = game_info.enemy_start_locations[0];
+        const start_loc = ctx.game_info.start_location;
+        const end_loc = ctx.game_info.enemy_start_locations[0];
 
-        const path = (try map.pathfindPath(arena, start_loc, end_loc, false)).?.path;
+        const path = (try map.pathfindPath(arena, start_loc, end_loc, .{})).?.path;
         const middle: usize = path.len / 2;
         map.addInfluence(path[middle], 20, 50, .none);
-        const path2 = (try map.pathfindPath(arena, start_loc, end_loc, false)).?.path;
+        const path2 = (try map.pathfindPath(arena, start_loc, end_loc, .{})).?.path;
 
         for (map.grid, 0..) |val, i| {
             if (val > 1 and val < std.math.floatMax(f32)) {
                 const p = map.indexToPoint(i).add(.{ .x = 0.5, .y = 0.5 });
-                const z = game_info.getTerrainZ(p);
+                const z = ctx.game_info.getTerrainZ(p);
 
-                actions.debugTextWorld(
+                ctx.actions.debugTextWorld(
                     "X",
                     Point3.fromPoint2(p, z),
                     .{ .r = 255, .g = 0, .b = 0 },
@@ -101,9 +95,9 @@ const MyBot = struct {
             }
         }
         for (path) |p| {
-            const z = game_info.getTerrainZ(p);
+            const z = ctx.game_info.getTerrainZ(p);
 
-            actions.debugTextWorld(
+            ctx.actions.debugTextWorld(
                 "o",
                 Point3.fromPoint2(p, z),
                 .{ .r = 0, .g = 0, .b = 255 },
@@ -111,9 +105,9 @@ const MyBot = struct {
             );
         }
         for (path2) |p| {
-            const z = game_info.getTerrainZ(p);
+            const z = ctx.game_info.getTerrainZ(p);
 
-            actions.debugTextWorld(
+            ctx.actions.debugTextWorld(
                 "o",
                 Point3.fromPoint2(p, z),
                 .{ .r = 0, .g = 255, .b = 0 },
@@ -124,12 +118,10 @@ const MyBot = struct {
 
     pub fn onResult(
         self: *Self,
-        bot: Bot,
-        game_info: GameInfo,
+        ctx: BotContext,
         result: bot_data.Result,
     ) !void {
-        _ = bot;
-        _ = game_info;
+        _ = ctx;
         _ = result;
         _ = self;
     }
