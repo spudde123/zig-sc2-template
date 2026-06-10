@@ -55,6 +55,19 @@ locally you can change what the program does through command line parameters:
     for the bot.
 - --GamePort
     - Decide the port your game is using locally to communicate with the program.
+- --Replay ./replays/my_game.SC2Replay
+    - Watch a replay instead of starting a new game. The bot callbacks run as an
+    observer of one player, but no actions are sent to the game. Can't be combined
+    with --Human or --LadderServer.
+- --ObservedPlayer 1
+    - Which player to observe when running a replay. Defaults to 1.
+    Can't be combined with --ObservedBot.
+- --ObservedBot MyBot
+    - Observe the player with the given name when running a replay. Errors out
+    if no player with that name is playing in the replay.
+    Can't be combined with --ObservedPlayer.
+- --DisableFog
+    - Disable the fog of war when running a replay.
 - --Proton /path/to/Proton
     - On Linux you can run the game with Proton. Set the path to the proton executable
 - --SteamCompatDataPath /wineprefix/path/
