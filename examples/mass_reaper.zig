@@ -29,7 +29,6 @@ const MassReaper = struct {
     const Self = @This();
 
     allocator: mem.Allocator,
-    fba: std.heap.FixedBufferAllocator,
     // These are mandatory
     name: []const u8,
     race: bot_data.Race,
@@ -38,10 +37,8 @@ const MassReaper = struct {
     reaper_map: InfluenceMap = .{},
 
     pub fn init(base_allocator: mem.Allocator) !Self {
-        const buffer = try base_allocator.alloc(u8, 5 * 1024 * 1024);
         return .{
             .allocator = base_allocator,
-            .fba = std.heap.FixedBufferAllocator.init(buffer),
             .name = "ReaperBot",
             .race = .terran,
         };
@@ -49,7 +46,6 @@ const MassReaper = struct {
 
     pub fn deinit(self: *Self) void {
         self.reaper_map.deinit(self.allocator);
-        self.allocator.free(self.fba.buffer);
     }
 
     fn closerToStart(context: Point2, lhs: Point2, rhs: Point2) bool {
@@ -502,14 +498,11 @@ const MassReaper = struct {
         }
     }
 
-    fn controlArmy(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
-        const own_units = bot.units.values();
-        const enemy_units = bot.enemy_units.values();
-        const heal_spot = self.reaper_map.findClosestSafeSpot(game_info.getMapCenter(), 15) orelse game_info.start_location;
-        const attack_target = getAttackTarget(bot, game_info);
-
-        const fb = self.fba.allocator();
-        defer self.fba.reset();
+    fn controlArmy(self: *Self, ctx: BotContext) void {
+        const own_units = ctx.bot.units.values();
+        const enemy_units = ctx.bot.enemy_units.values();
+        const heal_spot = self.reaper_map.findClosestSafeSpot(ctx.game_info.getMapCenter(), 15) orelse ctx.game_info.start_location;
+        const attack_target = getAttackTarget(ctx.bot, ctx.game_info);
 
         for (own_units) |unit| {
             if (unit.unit_type != .Reaper or unit.weapon_cooldown > second_attack_limit) continue;
@@ -520,11 +513,11 @@ const MassReaper = struct {
             const valid_pos = self.reaper_map.validateEndPoint(unit.position) orelse continue;
 
             if (unit.health / unit.health_max < heal_at_less_than) {
-                const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, heal_spot, .{}) catch null;
+                const pf_res = self.reaper_map.pathfindDirection(ctx.step_allocator, valid_pos, heal_spot, .{}) catch null;
                 if (pf_res) |dir| {
-                    actions.moveToPosition(unit.tag, dir.next_point, false);
+                    ctx.actions.moveToPosition(unit.tag, dir.next_point, false);
                 } else {
-                    actions.moveToPosition(unit.tag, game_info.start_location, false);
+                    ctx.actions.moveToPosition(unit.tag, ctx.game_info.start_location, false);
                 }
                 continue;
             }
@@ -553,18 +546,18 @@ const MassReaper = struct {
 
             if (target) |target_unit| {
                 if (unit.weapon_cooldown == 0) {
-                    actions.attackUnit(unit.tag, target_unit.tag, false);
+                    ctx.actions.attackUnit(unit.tag, target_unit.tag, false);
                     continue;
                 }
             }
 
             // Silly way of getting the bot to just go for it vs for example cannons if
             // we have got to a point where are late in the game and still in it
-            if (bot.time < 60 * 10 or enemy_iterator.exists()) {
+            if (ctx.bot.time < 60 * 10 or enemy_iterator.exists()) {
                 // Putting 4 here so we don't run away just because of creep and any
                 // unit with damage will push this over regardless
                 if (self.reaper_map.grid[self.reaper_map.pointToIndex(valid_pos)] > 4) {
-                    self.moveToSafety(game_info, actions, unit, fb);
+                    self.moveToSafety(ctx.game_info, ctx.actions, unit, ctx.step_allocator);
                     continue;
                 }
             }
@@ -574,17 +567,17 @@ const MassReaper = struct {
             if (unit.position.distanceSquaredTo(attack_target) > 5 * 5) {
                 // Only do pathfinding if close enemies exist
                 if (enemy_iterator.exists() or structure_iterator.exists()) {
-                    const pf_res = self.reaper_map.pathfindDirection(fb, valid_pos, attack_target, .{}) catch null;
+                    const pf_res = self.reaper_map.pathfindDirection(ctx.step_allocator, valid_pos, attack_target, .{}) catch null;
                     if (pf_res) |pf| {
-                        actions.moveToPosition(unit.tag, pf.next_point, false);
+                        ctx.actions.moveToPosition(unit.tag, pf.next_point, false);
                         continue;
                     }
                 }
-                actions.moveToPosition(unit.tag, attack_target, false);
+                ctx.actions.moveToPosition(unit.tag, attack_target, false);
                 continue;
             }
 
-            actions.attackPosition(unit.tag, attack_target, false);
+            ctx.actions.attackPosition(unit.tag, attack_target, false);
         }
     }
 
@@ -605,7 +598,7 @@ const MassReaper = struct {
         produceUnits(ctx.bot, own_units, ctx.actions);
 
         self.updateReaperGrid(ctx.bot, ctx.game_info, ctx.actions);
-        self.controlArmy(ctx.bot, ctx.game_info, ctx.actions);
+        self.controlArmy(ctx);
     }
 
     pub fn onResult(
