@@ -21,8 +21,7 @@ pub fn build(b: *std.Build) void {
     var bot_name: []const u8 = "zig-bot";
     var buf: [256]u8 = undefined;
 
-    var threaded = Io.Threaded.init_single_threaded;
-    const io = threaded.io();
+    const io = b.graph.io;
 
     if (b.option([]const u8, "example", "Example name")) |example_name| {
         const file_to_test = std.fmt.bufPrint(&buf, "examples/{s}.zig", .{example_name}) catch {
