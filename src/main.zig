@@ -78,6 +78,7 @@ pub fn main(init: std.process.Init) !void {
 }
 
 test "bot_init" {
+    const builtin = @import("builtin");
     // Run by setting the SC2 env var if it's in a non standard path
     var my_bot = try MyBot.init(std.testing.allocator);
     defer my_bot.deinit();
@@ -88,6 +89,17 @@ test "bot_init" {
     try std.testing.expectEqualStrings("MyBot", my_bot.name);
     try std.testing.expect(my_bot.race == .terran);
     var env_map = try std.testing.environ.createMap(arena);
+    // Dummy args so we don't crash
+    const args: std.process.Args = if (builtin.os.tag == .windows)
+        .{
+            .vector = std.unicode.utf8ToUtf16LeStringLiteral(
+                "runner_test",
+            ),
+        }
+    else
+        .{
+            .vector = &[_][*:0]const u8{"runner_test"},
+        };
     try std.testing.expect(.defeat == try zig_sc2.run(
         &my_bot,
         .{
@@ -95,7 +107,7 @@ test "bot_init" {
             .gpa = std.testing.allocator,
             .arena = &arena_instance,
             .env_map = &env_map,
-            .args = undefined,
+            .args = args,
             .io = std.testing.io,
         },
     ));
