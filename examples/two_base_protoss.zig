@@ -428,8 +428,6 @@ const ProtossBot = struct {
                 if (results.dirs[i]) |dir| {
                     break :d dir.path_cost;
                 } else {
-                    // Starting location might not give a path because start and end point were the same
-                    if (location.distanceSquaredTo(ctx.game_info.start_location) < 0.5) break :d 0;
                     break :d std.math.floatMax(f32);
                 }
             };
@@ -439,7 +437,6 @@ const ProtossBot = struct {
                 .base_type = bot_data.getBaseType(unit_group.findClosestUnit(ctx.bot.mineral_patches, location).?.unit.unit_type),
             });
         }
-
         std.sort.insertion(ExpansionData, self.expansion_list.items, {}, closerToStart);
     }
 
