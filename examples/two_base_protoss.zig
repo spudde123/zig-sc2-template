@@ -14,13 +14,11 @@ const UnitId = bot_data.UnitId;
 const AbilityId = bot_data.AbilityId;
 const BuffId = bot_data.BuffId;
 const InfluenceMap = bot_data.InfluenceMap;
-const Prng = std.Random.DefaultPrng;
 
 const ProtossBot = struct {
     const Self = @This();
 
     allocator: mem.Allocator,
-    prng: Prng,
     build_step: u8 = 0,
     expansion_list: std.ArrayList(ExpansionData),
 
@@ -33,7 +31,6 @@ const ProtossBot = struct {
             .allocator = base_allocator,
             .name = "ProtossBot",
             .race = .protoss,
-            .prng = Prng.init(0),
             .expansion_list = .empty,
         };
     }
@@ -42,9 +39,10 @@ const ProtossBot = struct {
         self.expansion_list.deinit(self.allocator);
     }
 
-    fn randomNear(self: *Self, point: Point2, distance: f32) Point2 {
-        const sin: f32 = -1 + 2 * self.prng.random().float(f32);
-        const cos: f32 = -1 + 2 * self.prng.random().float(f32);
+    fn randomNear(io: std.Io, point: Point2, distance: f32) Point2 {
+        const rng = (std.Random.IoSource{ .io = io }).interface();
+        const sin: f32 = -1 + 2 * rng.float(f32);
+        const cos: f32 = -1 + 2 * rng.float(f32);
         const p = Point2{ .x = cos, .y = sin };
         return point.add(p.multiply(distance));
     }
@@ -269,7 +267,7 @@ const ProtossBot = struct {
         }
     }
 
-    fn produceUnits(self: *Self, bot: *const Bot, game_info: *const GameInfo, actions: *Actions) void {
+    fn produceUnits(bot: *const Bot, game_info: *const GameInfo, actions: *Actions, io: std.Io) void {
         const ramp_top = game_info.getMainBaseRamp().top_center;
         const structures = bot.units.values();
         for (structures) |structure| {
@@ -282,7 +280,7 @@ const ProtossBot = struct {
                     } else if (bot.minerals >= 100) actions.train(structure.tag, .Zealot, false);
                 },
                 .WarpGate => {
-                    const warpin_pos = self.randomNear(ramp_top, 4);
+                    const warpin_pos = randomNear(io, ramp_top, 4);
                     if (bot.minerals >= 125 and bot.vespene >= 50 and structure.hasAbilityAvailable(.WarpGateTrain_Stalker)) {
                         if (actions.findPlacementForAbility(.WarpGateTrain_Stalker, warpin_pos, 25)) |pos| {
                             actions.useAbilityOnPosition(structure.tag, .WarpGateTrain_Stalker, pos, false);
@@ -465,7 +463,7 @@ const ProtossBot = struct {
         self.runBuild(ctx.bot, ctx.game_info, ctx.actions);
         rallyBuildings(ctx.bot, ctx.actions);
         doUpgrades(ctx.bot, ctx.actions);
-        self.produceUnits(ctx.bot, ctx.game_info, ctx.actions);
+        produceUnits(ctx.bot, ctx.game_info, ctx.actions, ctx.io);
         useChronoboost(ctx.bot, ctx.actions);
         handleIdleWorkers(own_units, ctx.bot.mineral_patches, ctx.game_info, ctx.actions);
         moveWorkersToGas(ctx.bot, ctx.actions);
