@@ -4,3 +4,4 @@ src/zig-cache
 *.zip
 .zig-cache/
 run_proton.py
+.DS_Store
